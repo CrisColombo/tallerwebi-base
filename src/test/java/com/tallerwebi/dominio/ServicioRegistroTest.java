@@ -1,9 +1,7 @@
 package com.tallerwebi.dominio;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
@@ -13,6 +11,8 @@ import com.tallerwebi.dominio.excepcion.UsuarioExistente;
 import java.time.LocalDate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 public class ServicioRegistroTest {
 
@@ -22,6 +22,7 @@ public class ServicioRegistroTest {
   private RepositorioSocio repositorioSocioMock;
   private RepositorioUsuario repositorioUsuarioMock;
   private RepositorioPlan repositorioPlanMock;
+  private PasswordEncoder passwordEncoder;
   private Plan planBasico;
 
   @BeforeEach
@@ -32,8 +33,14 @@ public class ServicioRegistroTest {
     planBasico = new Plan();
     planBasico.setNivel(1);
     when(repositorioPlanMock.buscarPorId(PLAN_ID)).thenReturn(planBasico);
+    passwordEncoder = new BCryptPasswordEncoder();
     servicioRegistro =
-      new ServicioRegistroImpl(repositorioSocioMock, repositorioUsuarioMock, repositorioPlanMock);
+      new ServicioRegistroImpl(
+        repositorioSocioMock,
+        repositorioUsuarioMock,
+        repositorioPlanMock,
+        passwordEncoder
+      );
   }
 
   @Test
@@ -183,6 +190,17 @@ public class ServicioRegistroTest {
       DatosDeRegistroInvalidos.class,
       () -> servicioRegistro.registrarSocio(socio, dadaUnaMascotaValida(), PLAN_ID)
     );
+  }
+
+  @Test
+  public void registrarUnSocioDeberiaGuardarSuContrasenaEncriptada() throws Exception {
+    Socio socio = dadoUnSocioValido();
+
+    servicioRegistro.registrarSocio(socio, dadaUnaMascotaValida(), PLAN_ID);
+
+    String guardada = socio.getUsuario().getPassword();
+    assertThat(guardada, is(not(equalTo("123456"))));
+    assertThat(passwordEncoder.matches("123456", guardada), is(true));
   }
 
   private Socio dadoUnSocioValido() {

@@ -5,6 +5,7 @@ import com.tallerwebi.dominio.excepcion.SocioExistente;
 import com.tallerwebi.dominio.excepcion.UsuarioExistente;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service("servicioRegistro")
@@ -16,16 +17,19 @@ public class ServicioRegistroImpl implements ServicioRegistro {
   private RepositorioSocio repositorioSocio;
   private RepositorioUsuario repositorioUsuario;
   private RepositorioPlan repositorioPlan;
+  private PasswordEncoder passwordEncoder;
 
   @Autowired
   public ServicioRegistroImpl(
     RepositorioSocio repositorioSocio,
     RepositorioUsuario repositorioUsuario,
-    RepositorioPlan repositorioPlan
+    RepositorioPlan repositorioPlan,
+    PasswordEncoder passwordEncoder
   ) {
     this.repositorioSocio = repositorioSocio;
     this.repositorioUsuario = repositorioUsuario;
     this.repositorioPlan = repositorioPlan;
+    this.passwordEncoder = passwordEncoder;
   }
 
   @Override
@@ -47,6 +51,7 @@ public class ServicioRegistroImpl implements ServicioRegistro {
 
     socio.getUsuario().setRol(ROL_SOCIO);
     socio.getUsuario().activar();
+    socio.getUsuario().setPassword(passwordEncoder.encode(socio.getUsuario().getPassword()));
     mascota.setPlan(plan);
     socio.agregarMascota(mascota);
     repositorioSocio.guardar(socio);

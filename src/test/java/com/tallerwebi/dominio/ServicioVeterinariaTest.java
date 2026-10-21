@@ -1,9 +1,7 @@
 package com.tallerwebi.dominio;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
@@ -15,6 +13,8 @@ import java.util.EnumSet;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 public class ServicioVeterinariaTest {
 
@@ -22,6 +22,7 @@ public class ServicioVeterinariaTest {
   private RepositorioServicio repositorioServicioMock;
   private RepositorioVeterinaria repositorioVeterinariaMock;
   private RepositorioUsuario repositorioUsuarioMock;
+  private PasswordEncoder passwordEncoder;
   private Veterinaria conCirugia;
   private Veterinaria sinCirugia;
   private Servicio cirugia;
@@ -31,11 +32,13 @@ public class ServicioVeterinariaTest {
     repositorioVeterinariaMock = mock(RepositorioVeterinaria.class);
     repositorioServicioMock = mock(RepositorioServicio.class);
     repositorioUsuarioMock = mock(RepositorioUsuario.class);
+    passwordEncoder = new BCryptPasswordEncoder();
     servicioVeterinaria =
       new ServicioVeterinariaImpl(
         repositorioVeterinariaMock,
         repositorioServicioMock,
-        repositorioUsuarioMock
+        repositorioUsuarioMock,
+        passwordEncoder
       );
 
     cirugia = new Servicio();
@@ -158,6 +161,18 @@ public class ServicioVeterinariaTest {
       UsuarioExistente.class,
       () -> servicioVeterinaria.actualizarPerfil(40L, cambios, "ocupado@test.com", List.of(13L))
     );
+  }
+
+  @Test
+  public void registrarVeterinariaDeberiaGuardarSuContrasenaEncriptada() throws Exception {
+    Veterinaria vete = datosRegistroValidos();
+    when(repositorioServicioMock.buscarPorId(13L)).thenReturn(cirugia);
+
+    servicioVeterinaria.registrar(vete, List.of(13L));
+
+    String guardada = vete.getUsuario().getPassword();
+    assertThat(guardada, is(not(equalTo("secreto"))));
+    assertThat(passwordEncoder.matches("secreto", guardada), is(true));
   }
 
   private Veterinaria datosRegistroValidos() {

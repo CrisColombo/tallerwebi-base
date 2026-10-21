@@ -1,4 +1,4 @@
-INSERT INTO Usuario(id, email, password, rol, activo) VALUES(null, 'test@unlam.edu.ar', 'test', 'ADMIN', true);
+INSERT INTO Usuario(id, email, password, rol, activo) VALUES(null, 'test@unlam.edu.ar', '$2a$10$oFRmDowvSyPXCiu1ZohdkuqywsVBsb.WZgeFqFcdtgmQBYS9EVNkG', 'ADMIN', true);
 
 -- Planes (nivel 1 = Básico, 2 = Premium)
 INSERT INTO Plan(id, nombre, descripcion, precio, nivel) VALUES
@@ -37,7 +37,7 @@ INSERT INTO Veterinaria_Servicio(veterinaria_id, servicio_id) VALUES
 (4, 1), (4, 2), (4, 10), (4, 11), (4, 12), (4, 13), (4, 14), (4, 15);
 
 -- Socio de demo: socio@medipet.com / 1234
-INSERT INTO Usuario(id, email, password, rol, activo) VALUES(2, 'socio@medipet.com', '1234', 'SOCIO', true);
+INSERT INTO Usuario(id, email, password, rol, activo) VALUES(2, 'socio@medipet.com', '$2a$10$aOHU3dE4FX55d2HMTvXS2Oqrp1phohqusFMmt0R1j6X4w2eK.wzO.', 'SOCIO', true);
 INSERT INTO Socio(id, nombre, apellido, dni, telefono, usuario_id) VALUES(1, 'Lucía', 'Gómez', '35111222', '1155554444', 2);
 INSERT INTO Mascota(id, nombre, especie, raza, fechaNacimiento, peso, socio_id, plan_id) VALUES
 (1, 'Firulais', 'PERRO', 'Mestizo', '2019-04-10', 18.5, 1, 1),
