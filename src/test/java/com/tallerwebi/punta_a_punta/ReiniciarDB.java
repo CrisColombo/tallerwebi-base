@@ -20,6 +20,9 @@ public class ReiniciarDB {
         "DELETE FROM Turno;\n" +
         "DELETE FROM Mascota WHERE id > 2;\n" +
         "DELETE FROM Socio WHERE id > 1;\n" +
+        "DELETE FROM Veterinaria_Dia_Atencion WHERE veterinaria_id > 4;\n" +
+        "DELETE FROM Veterinaria_Servicio WHERE veterinaria_id > 4;\n" +
+        "DELETE FROM Veterinaria WHERE id > 4;\n" +
         "DELETE FROM Usuario WHERE id > 2;\n" +
         "ALTER TABLE Usuario AUTO_INCREMENT = 3;";
 
