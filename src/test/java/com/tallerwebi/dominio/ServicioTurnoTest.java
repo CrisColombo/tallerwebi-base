@@ -33,6 +33,7 @@ public class ServicioTurnoTest {
   private RepositorioVeterinaria repositorioVeterinariaMock;
   private RepositorioServicio repositorioServicioMock;
   private ServicioTurno servicioTurno;
+  private ServicioNotificacion servicioNotificacionMock;
 
   private Veterinaria veterinaria;
   private Servicio consulta;
@@ -45,6 +46,8 @@ public class ServicioTurnoTest {
     repositorioTurnoMock = mock(RepositorioTurno.class);
     repositorioVeterinariaMock = mock(RepositorioVeterinaria.class);
     repositorioServicioMock = mock(RepositorioServicio.class);
+    repositorioServicioMock = mock(RepositorioServicio.class);
+    servicioNotificacionMock = mock(ServicioNotificacion.class);
     Clock reloj = Clock.fixed(
       LocalDateTime.of(HOY, LocalTime.NOON).atZone(ZoneId.systemDefault()).toInstant(),
       ZoneId.systemDefault()
@@ -54,6 +57,7 @@ public class ServicioTurnoTest {
         repositorioTurnoMock,
         repositorioVeterinariaMock,
         repositorioServicioMock,
+        servicioNotificacionMock,
         reloj
       );
 
@@ -63,6 +67,9 @@ public class ServicioTurnoTest {
     firulais = dadaUnaMascotaConPlanBasico();
     socio = new Socio();
     socio.setId(1L);
+    Usuario usuario = new Usuario();
+    usuario.setEmail("socio@mail.com");
+    socio.setUsuario(usuario);
     socio.agregarMascota(firulais);
 
     when(repositorioVeterinariaMock.buscarPorId(10L)).thenReturn(veterinaria);
@@ -267,6 +274,25 @@ public class ServicioTurnoTest {
     when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
 
     assertThrows(TurnoInvalido.class, () -> servicioTurno.cancelar(socio, 5L));
+  }
+
+  @Test
+  public void reservarUnTurnoDeberiaEnviarElMailDeConfirmacionAlSocio() throws TurnoInvalido {
+    Turno turno = servicioTurno.reservar(socio, dadaUnaSolicitud(1L, JUEVES, DIEZ));
+
+    verify(servicioNotificacionMock, times(1)).enviarConfirmacionTurno(turno, "socio@mail.com");
+  }
+
+  @Test
+  public void siElMailFallaElTurnoIgualDeberiaQuedarReservado() throws TurnoInvalido {
+    doThrow(new IllegalStateException("SMTP caído"))
+      .when(servicioNotificacionMock)
+      .enviarConfirmacionTurno(any(), anyString());
+
+    Turno turno = servicioTurno.reservar(socio, dadaUnaSolicitud(1L, JUEVES, DIEZ));
+
+    verify(repositorioTurnoMock, times(1)).guardar(turno);
+    assertThat(turno.getEstado(), is(EstadoTurno.CONFIRMADO));
   }
 
   private Servicio dadoUnServicio(Long id, String nombre, int nivel) {

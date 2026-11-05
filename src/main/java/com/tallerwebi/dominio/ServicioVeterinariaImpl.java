@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service("servicioVeterinaria")
@@ -17,16 +18,19 @@ public class ServicioVeterinariaImpl implements ServicioVeterinaria {
   private RepositorioVeterinaria repositorioVeterinaria;
   private RepositorioServicio repositorioServicio;
   private RepositorioUsuario repositorioUsuario;
+  private PasswordEncoder passwordEncoder;
 
   @Autowired
   public ServicioVeterinariaImpl(
     RepositorioVeterinaria repositorioVeterinaria,
     RepositorioServicio repositorioServicio,
-    RepositorioUsuario repositorioUsuario
+    RepositorioUsuario repositorioUsuario,
+    PasswordEncoder passwordEncoder
   ) {
     this.repositorioVeterinaria = repositorioVeterinaria;
     this.repositorioServicio = repositorioServicio;
     this.repositorioUsuario = repositorioUsuario;
+    this.passwordEncoder = passwordEncoder;
   }
 
   @Override
@@ -66,6 +70,9 @@ public class ServicioVeterinariaImpl implements ServicioVeterinaria {
     veterinaria.setTelefono(veterinaria.getTelefono().trim());
     veterinaria.getUsuario().setEmail(veterinaria.getUsuario().getEmail().trim());
     veterinaria.getUsuario().setRol(Usuario.ROL_VETERINARIA);
+    veterinaria
+      .getUsuario()
+      .setPassword(passwordEncoder.encode(veterinaria.getUsuario().getPassword()));
     veterinaria.getUsuario().activar();
     veterinaria.getServicios().addAll(buscarServicios(serviciosIds));
     repositorioVeterinaria.guardar(veterinaria);

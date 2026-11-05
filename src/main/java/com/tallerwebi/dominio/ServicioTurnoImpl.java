@@ -9,6 +9,8 @@ import java.time.LocalTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -17,18 +19,28 @@ import org.springframework.stereotype.Service;
 @Transactional
 public class ServicioTurnoImpl implements ServicioTurno {
 
+  private static final Logger LOGGER = Logger.getLogger(ServicioTurnoImpl.class.getName());
+
   private final RepositorioTurno repositorioTurno;
   private final RepositorioVeterinaria repositorioVeterinaria;
   private final RepositorioServicio repositorioServicio;
+  private final ServicioNotificacion servicioNotificacion;
   private final Clock reloj;
 
   @Autowired
   public ServicioTurnoImpl(
     RepositorioTurno repositorioTurno,
     RepositorioVeterinaria repositorioVeterinaria,
-    RepositorioServicio repositorioServicio
+    RepositorioServicio repositorioServicio,
+    ServicioNotificacion servicioNotificacion
   ) {
-    this(repositorioTurno, repositorioVeterinaria, repositorioServicio, Clock.systemDefaultZone());
+    this(
+      repositorioTurno,
+      repositorioVeterinaria,
+      repositorioServicio,
+      servicioNotificacion,
+      Clock.systemDefaultZone()
+    );
   }
 
   // Permite fijar "hoy" en los tests.
@@ -36,11 +48,13 @@ public class ServicioTurnoImpl implements ServicioTurno {
     RepositorioTurno repositorioTurno,
     RepositorioVeterinaria repositorioVeterinaria,
     RepositorioServicio repositorioServicio,
+    ServicioNotificacion servicioNotificacion,
     Clock reloj
   ) {
     this.repositorioTurno = repositorioTurno;
     this.repositorioVeterinaria = repositorioVeterinaria;
     this.repositorioServicio = repositorioServicio;
+    this.servicioNotificacion = servicioNotificacion;
     this.reloj = reloj;
   }
 
@@ -81,7 +95,21 @@ public class ServicioTurnoImpl implements ServicioTurno {
     turno.setHora(solicitud.getHora());
     turno.setObservaciones(solicitud.getObservaciones());
     repositorioTurno.guardar(turno);
+    notificarConfirmacion(socio, turno);
     return turno;
+  }
+
+  private void notificarConfirmacion(Socio socio, Turno turno) {
+    try {
+      Usuario usuario = socio.getUsuario();
+      String email = usuario == null ? null : usuario.getEmail();
+      if (email == null || email.isBlank()) {
+        return;
+      }
+      servicioNotificacion.enviarConfirmacionTurno(turno, email);
+    } catch (Exception e) {
+      LOGGER.log(Level.WARNING, "No se pudo enviar el mail de confirmación del turno", e);
+    }
   }
 
   private void validarServicio(Mascota mascota, Veterinaria veterinaria, Servicio servicio)
