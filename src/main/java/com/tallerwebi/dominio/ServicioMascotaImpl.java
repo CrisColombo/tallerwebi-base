@@ -83,6 +83,7 @@ public class ServicioMascotaImpl implements ServicioMascota {
     Mascota mascota = repositorioMascota.buscarPorId(mascotaId);
     if (mascota != null) {
       mascota.setPlan(null);
+      mascota.limpiarSuscripcion();
     }
   }
 }

@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+  <head th:replace="~{fragments/layout :: head('Error de pago')}"></head>
+  <body>
+    <main class="mp-main mp-main--angosto">
+      <h1>No se pudo cobrar</h1>
+      <p th:text="${mensaje}">Error</p>
+      <a th:href="@{/home}" class="btn btn-secondary">Volver</a>
+    </main>
+  </body>
+</html>
