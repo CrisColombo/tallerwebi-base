@@ -34,6 +34,28 @@ public class ServicioNotificacionMail implements ServicioNotificacion {
 
   @Override
   public void enviarConfirmacionTurno(Turno turno, String emailDestino) {
+    enviar(
+      emailDestino,
+      "Turno confirmado en " + turno.getVeterinaria().getNombre(),
+      armarHtml(turno, "¡Turno confirmado!", "Te esperamos con {{mascota}}", "#14b8a6")
+    );
+  }
+
+  @Override
+  public void enviarCancelacionTurno(Turno turno, String emailDestino) {
+    enviar(
+      emailDestino,
+      "Turno cancelado en " + turno.getVeterinaria().getNombre(),
+      armarHtml(
+        turno,
+        "Turno cancelado",
+        "El turno de {{mascota}} fue cancelado. Podés sacar uno nuevo desde MediPet.",
+        "#64748b"
+      )
+    );
+  }
+
+  private void enviar(String emailDestino, String asunto, String html) {
     String usuario = requerido("MAIL_USER");
     String clave = requerido("MAIL_PASSWORD");
 
@@ -60,12 +82,12 @@ public class ServicioNotificacionMail implements ServicioNotificacion {
       MimeMessage mensaje = new MimeMessage(sesion);
       mensaje.setFrom(new InternetAddress(usuario, "MediPet"));
       mensaje.setRecipients(Message.RecipientType.TO, InternetAddress.parse(emailDestino));
-      mensaje.setSubject("Turno confirmado en " + turno.getVeterinaria().getNombre(), "UTF-8");
+      mensaje.setSubject(asunto, "UTF-8");
 
       MimeMultipart contenido = new MimeMultipart("related");
 
       MimeBodyPart parteHtml = new MimeBodyPart();
-      parteHtml.setContent(armarHtml(turno), "text/html; charset=UTF-8");
+      parteHtml.setContent(html, "text/html; charset=UTF-8");
       contenido.addBodyPart(parteHtml);
 
       MimeBodyPart parteLogo = new MimeBodyPart();
@@ -77,7 +99,7 @@ public class ServicioNotificacionMail implements ServicioNotificacion {
       mensaje.setContent(contenido);
       Transport.send(mensaje);
     } catch (MessagingException | IOException e) {
-      throw new IllegalStateException("No se pudo enviar el mail de confirmación", e);
+      throw new IllegalStateException("No se pudo enviar el mail", e);
     }
   }
 
@@ -90,7 +112,7 @@ public class ServicioNotificacionMail implements ServicioNotificacion {
     }
   }
 
-  private String armarHtml(Turno turno) {
+  private String armarHtml(Turno turno, String titulo, String subtitulo, String colorCabecera) {
     String plantilla =
       """
       <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdfa;font-family:Arial,sans-serif;">
@@ -105,12 +127,12 @@ public class ServicioNotificacionMail implements ServicioNotificacion {
               </tr>
             </table>
 
-            <div style="font-size:21px;font-weight:bold;color:#155e75;margin:10px 0 2px;">¡Turno confirmado!</div>
-            <div style="font-size:14px;color:#5b7c7a;margin-bottom:16px;">Te esperamos con {{mascota}}</div>
+            <div style="font-size:21px;font-weight:bold;color:#155e75;margin:10px 0 2px;">{{titulo}}</div>
+            <div style="font-size:14px;color:#5b7c7a;margin-bottom:16px;">{{subtitulo}}</div>
 
             <table width="420" cellpadding="0" cellspacing="0" style="max-width:100%;background:#ffffff;border:1px solid #cdeee9;border-radius:12px;">
               <tr>
-                <td style="background:#14b8a6;padding:16px 18px;border-radius:12px 12px 0 0;">
+                <td style="background:{{color}};padding:16px 18px;border-radius:12px 12px 0 0;">
                   <table width="100%" cellpadding="0" cellspacing="0">
                     <tr>
                       <td style="color:#ffffff;">
@@ -141,6 +163,9 @@ public class ServicioNotificacionMail implements ServicioNotificacion {
       """;
 
     return plantilla
+      .replace("{{titulo}}", titulo)
+      .replace("{{subtitulo}}", subtitulo)
+      .replace("{{color}}", colorCabecera)
       .replace("{{mascota}}", escapar(turno.getMascota().getNombre()))
       .replace("{{diaSemana}}", turno.getFecha().format(DIA_SEMANA).toUpperCase(LOCALE))
       .replace("{{diaYMes}}", turno.getFecha().format(DIA_Y_MES))

@@ -295,59 +295,6 @@ public class ServicioTurnoTest {
     assertThat(turno.getEstado(), is(EstadoTurno.CONFIRMADO));
   }
 
-  private Servicio dadoUnServicio(Long id, String nombre, int nivel) {
-    Servicio servicio = new Servicio();
-    servicio.setId(id);
-    servicio.setNombre(nombre);
-    servicio.setNivelRequerido(nivel);
-    return servicio;
-  }
-
-  private Veterinaria dadaUnaVeterinariaQueAtiendeDe9A12(Servicio... servicios) {
-    Veterinaria vet = new Veterinaria();
-    vet.setId(10L);
-    vet.setNombre("Veterinaria San Justo");
-    vet.setHoraApertura(LocalTime.of(9, 0));
-    vet.setHoraCierre(LocalTime.of(12, 0));
-    vet.getServicios().addAll(List.of(servicios));
-    return vet;
-  }
-
-  private Mascota dadaUnaMascotaConPlanBasico() {
-    Plan basico = new Plan();
-    basico.setNivel(1);
-    Mascota mascota = new Mascota();
-    mascota.setId(1L);
-    mascota.setNombre("Firulais");
-    mascota.setPlan(basico);
-    return mascota;
-  }
-
-  private SolicitudTurno dadaUnaSolicitud(Long servicioId, LocalDate fecha, LocalTime hora) {
-    SolicitudTurno solicitud = new SolicitudTurno();
-    solicitud.setMascotaId(1L);
-    solicitud.setVeterinariaId(10L);
-    solicitud.setServicioId(servicioId);
-    solicitud.setFecha(fecha);
-    solicitud.setHora(hora);
-    return solicitud;
-  }
-
-  private Turno dadoUnTurnoDe(Mascota mascota) {
-    Turno turno = new Turno();
-    turno.setMascota(mascota);
-    return turno;
-  }
-
-  private Turno dadoUnTurno(LocalDate fecha, LocalTime hora, EstadoTurno estado) {
-    Turno turno = new Turno();
-    turno.setMascota(firulais);
-    turno.setFecha(fecha);
-    turno.setHora(hora);
-    turno.setEstado(estado);
-    return turno;
-  }
-
   @Test
   public void historialDeberiaPonerEnProximosUnTurnoConfirmadoFuturo() throws TurnoInvalido {
     Turno turno = dadoUnTurno(JUEVES, DIEZ, EstadoTurno.CONFIRMADO);
@@ -526,5 +473,104 @@ public class ServicioTurnoTest {
     );
 
     assertThat(error.getMessage(), equalTo("No encontramos ese turno"));
+  }
+
+  @Test
+  public void cancelarUnTurnoDelSocioDeberiaEnviarElMailDeCancelacion() throws TurnoInvalido {
+    Turno turno = dadoUnTurnoDe(firulais);
+    when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
+
+    servicioTurno.cancelar(socio, 5L);
+
+    verify(servicioNotificacionMock, times(1)).enviarCancelacionTurno(turno, "socio@mail.com");
+    verify(servicioNotificacionMock, never()).enviarConfirmacionTurno(any(), anyString());
+  }
+
+  @Test
+  public void cancelarPorVeterinariaDeberiaEnviarElMailDeCancelacionAlSocio() throws TurnoInvalido {
+    Turno turno = dadoUnTurnoDe(firulais);
+    turno.setVeterinaria(veterinaria);
+    when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
+
+    servicioTurno.cancelarPorVeterinaria(veterinaria, 5L);
+
+    verify(servicioNotificacionMock, times(1)).enviarCancelacionTurno(turno, "socio@mail.com");
+  }
+
+  @Test
+  public void siElMailDeCancelacionFallaElTurnoIgualDeberiaQuedarCancelado() throws TurnoInvalido {
+    doThrow(new IllegalStateException("SMTP caído"))
+      .when(servicioNotificacionMock)
+      .enviarCancelacionTurno(any(), anyString());
+    Turno turno = dadoUnTurnoDe(firulais);
+    when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
+
+    servicioTurno.cancelar(socio, 5L);
+
+    assertThat(turno.getEstado(), is(EstadoTurno.CANCELADO));
+  }
+
+  @Test
+  public void cancelarUnTurnoYaCanceladoNoDeberiaEnviarNingunMail() {
+    Turno turno = dadoUnTurnoDe(firulais);
+    turno.cancelar();
+    when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
+
+    assertThrows(TurnoInvalido.class, () -> servicioTurno.cancelar(socio, 5L));
+
+    verifyNoInteractions(servicioNotificacionMock);
+  }
+
+  private Servicio dadoUnServicio(Long id, String nombre, int nivel) {
+    Servicio servicio = new Servicio();
+    servicio.setId(id);
+    servicio.setNombre(nombre);
+    servicio.setNivelRequerido(nivel);
+    return servicio;
+  }
+
+  private Veterinaria dadaUnaVeterinariaQueAtiendeDe9A12(Servicio... servicios) {
+    Veterinaria vet = new Veterinaria();
+    vet.setId(10L);
+    vet.setNombre("Veterinaria San Justo");
+    vet.setHoraApertura(LocalTime.of(9, 0));
+    vet.setHoraCierre(LocalTime.of(12, 0));
+    vet.getServicios().addAll(List.of(servicios));
+    return vet;
+  }
+
+  private Mascota dadaUnaMascotaConPlanBasico() {
+    Plan basico = new Plan();
+    basico.setNivel(1);
+    Mascota mascota = new Mascota();
+    mascota.setId(1L);
+    mascota.setNombre("Firulais");
+    mascota.setPlan(basico);
+    return mascota;
+  }
+
+  private SolicitudTurno dadaUnaSolicitud(Long servicioId, LocalDate fecha, LocalTime hora) {
+    SolicitudTurno solicitud = new SolicitudTurno();
+    solicitud.setMascotaId(1L);
+    solicitud.setVeterinariaId(10L);
+    solicitud.setServicioId(servicioId);
+    solicitud.setFecha(fecha);
+    solicitud.setHora(hora);
+    return solicitud;
+  }
+
+  private Turno dadoUnTurnoDe(Mascota mascota) {
+    Turno turno = new Turno();
+    turno.setMascota(mascota);
+    return turno;
+  }
+
+  private Turno dadoUnTurno(LocalDate fecha, LocalTime hora, EstadoTurno estado) {
+    Turno turno = new Turno();
+    turno.setMascota(firulais);
+    turno.setFecha(fecha);
+    turno.setHora(hora);
+    turno.setEstado(estado);
+    return turno;
   }
 }
