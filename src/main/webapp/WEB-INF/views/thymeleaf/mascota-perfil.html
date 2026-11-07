@@ -228,6 +228,18 @@
       <section class="mp-card" id="turnos-pasados">
         <h2 class="mp-seccion-titulo">Turnos pasados</h2>
 
+        <div th:if="${param.resenaOk}" class="alert alert-success" role="status">
+          Gracias, guardamos tu reseña.
+        </div>
+        <div
+          th:if="${param.errorResena}"
+          class="alert alert-danger"
+          role="alert"
+          th:text="${param.errorResena}"
+        >
+          No se pudo guardar la reseña.
+        </div>
+
         <p
           th:if="${#lists.isEmpty(historial.pasados)}"
           class="text-muted mb-0"
@@ -237,26 +249,75 @@
         </p>
 
         <ul class="list-group" th:unless="${#lists.isEmpty(historial.pasados)}">
-          <li
-            class="list-group-item d-flex justify-content-between align-items-start gap-2"
-            th:each="t : ${historial.pasados}"
-          >
-            <div>
-              <strong
-                th:text="${#temporals.format(t.fecha, 'dd/MM/yyyy')} + ' ' + ${t.hora}"
-                >01/09/2026 10:00</strong
-              >
-              · <span th:text="${t.servicio.nombre}">Servicio</span>
-              <div class="small text-muted" th:text="${t.veterinaria.nombre}">
-                Veterinaria
-              </div>
-            </div>
-            <span
-              class="badge"
-              th:text="${t.estado}"
-              th:classappend="${t.estado.name() == 'CONFIRMADO'} ? 'text-bg-success' : (${t.estado.name() == 'CANCELADO'} ? 'text-bg-secondary' : 'text-bg-info')"
-              >FINALIZADO</span
+          <li class="list-group-item" th:each="t : ${historial.pasados}">
+            <div
+              class="d-flex justify-content-between align-items-start gap-2"
             >
+              <div>
+                <strong
+                  th:text="${#temporals.format(t.fecha, 'dd/MM/yyyy')} + ' ' + ${t.hora}"
+                  >01/09/2026 10:00</strong
+                >
+                · <span th:text="${t.servicio.nombre}">Servicio</span>
+                <div class="small text-muted" th:text="${t.veterinaria.nombre}">
+                  Veterinaria
+                </div>
+              </div>
+              <span
+                class="badge"
+                th:text="${t.estado}"
+                th:classappend="${t.estado.name() == 'CONFIRMADO'} ? 'text-bg-success' : (${t.estado.name() == 'CANCELADO'} ? 'text-bg-secondary' : 'text-bg-info')"
+                >FINALIZADO</span
+              >
+            </div>
+            <div
+              th:if="${t.estaFinalizado() and resenasPorTurno != null and !resenasPorTurno[t.id]}"
+              class="mt-3 pt-2 border-top"
+            >
+              <form
+                th:action="@{/turnos/{id}/resena(id=${t.id})}"
+                method="POST"
+              >
+                <label
+                  class="form-label small mb-1"
+                  th:attr="for='puntuacion-' + ${t.id}"
+                  >Calificar la atención (1 a 5 estrellas)</label
+                >
+                <select
+                  class="form-select form-select-sm mb-2"
+                  style="max-width: 200px"
+                  th:id="'puntuacion-' + ${t.id}"
+                  name="puntuacion"
+                  required
+                >
+                  <option value="5">5 — Excelente</option>
+                  <option value="4">4</option>
+                  <option value="3">3</option>
+                  <option value="2">2</option>
+                  <option value="1">1 — Mala</option>
+                </select>
+                <textarea
+                  class="form-control form-control-sm"
+                  name="comentario"
+                  rows="2"
+                  maxlength="500"
+                  required
+                  placeholder="Contá cómo fue la atención..."
+                ></textarea>
+                <button
+                  type="submit"
+                  class="btn btn-outline-primary btn-sm mt-2"
+                >
+                  Enviar reseña
+                </button>
+              </form>
+            </div>
+            <p
+              th:if="${t.estaFinalizado() and resenasPorTurno != null and resenasPorTurno[t.id]}"
+              class="small text-muted mb-0 mt-2 pt-2 border-top"
+            >
+              <span class="badge text-bg-secondary">Ya calificaste este turno</span>
+            </p>
           </li>
         </ul>
       </section>

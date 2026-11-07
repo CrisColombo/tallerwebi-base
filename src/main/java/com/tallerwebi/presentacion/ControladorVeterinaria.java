@@ -1,6 +1,8 @@
 package com.tallerwebi.presentacion;
 
+import com.tallerwebi.dominio.ResumenResenas;
 import com.tallerwebi.dominio.ServicioCobertura;
+import com.tallerwebi.dominio.ServicioResena;
 import com.tallerwebi.dominio.ServicioVeterinaria;
 import com.tallerwebi.dominio.Veterinaria;
 import jakarta.servlet.http.HttpSession;
@@ -17,16 +19,19 @@ import org.springframework.web.servlet.ModelAndView;
 @Controller
 public class ControladorVeterinaria {
 
-  private ServicioVeterinaria servicioVeterinaria;
-  private ServicioCobertura servicioCobertura;
+  private final ServicioVeterinaria servicioVeterinaria;
+  private final ServicioCobertura servicioCobertura;
+  private final ServicioResena servicioResena;
 
   @Autowired
   public ControladorVeterinaria(
     ServicioVeterinaria servicioVeterinaria,
-    ServicioCobertura servicioCobertura
+    ServicioCobertura servicioCobertura,
+    ServicioResena servicioResena
   ) {
     this.servicioVeterinaria = servicioVeterinaria;
     this.servicioCobertura = servicioCobertura;
+    this.servicioResena = servicioResena;
   }
 
   @RequestMapping(path = "/veterinarias", method = RequestMethod.GET)
@@ -42,9 +47,11 @@ public class ControladorVeterinaria {
       return new ModelAndView("redirect:/veterinaria/inicio");
     }
     List<Veterinaria> veterinarias = servicioVeterinaria.listar(servicioId);
+    Map<Long, ResumenResenas> resenas = servicioResena.resumenesPorVeterinarias(veterinarias);
 
     Map<String, Object> modelo = new ModelMap();
     modelo.put("veterinarias", veterinarias);
+    modelo.put("resenas", resenas);
     modelo.put("servicios", servicioCobertura.listarServicios());
     modelo.put("servicioId", servicioId);
     return new ModelAndView("veterinarias", modelo);

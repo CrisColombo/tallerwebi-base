@@ -4,6 +4,7 @@ import com.tallerwebi.dominio.*;
 import com.tallerwebi.dominio.excepcion.DatosDeRegistroInvalidos;
 import com.tallerwebi.dominio.excepcion.TurnoInvalido;
 import jakarta.servlet.http.HttpSession;
+import java.util.HashMap;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -22,6 +23,7 @@ public class ControladorMascota extends ControladorConSocio {
   private ServicioPlan servicioPlan;
   private ServicioMascota servicioMascota;
   private ServicioTurno servicioTurno;
+  private ServicioResena servicioResena;
   private static final String REDIRECT_HOME = "redirect:/home";
 
   @Autowired
@@ -29,12 +31,14 @@ public class ControladorMascota extends ControladorConSocio {
     ServicioSocio servicioSocio,
     ServicioPlan servicioPlan,
     ServicioMascota servicioMascota,
-    ServicioTurno servicioTurno
+    ServicioTurno servicioTurno,
+    ServicioResena servicioResena
   ) {
     super(servicioSocio);
     this.servicioPlan = servicioPlan;
     this.servicioMascota = servicioMascota;
     this.servicioTurno = servicioTurno;
+    this.servicioResena = servicioResena;
   }
 
   @RequestMapping(path = "/mascotas/nueva", method = RequestMethod.GET)
@@ -89,11 +93,23 @@ public class ControladorMascota extends ControladorConSocio {
     modelo.put("mascota", mascota);
     modelo.put("planes", servicioPlan.listar());
     try {
-      modelo.put("historial", servicioTurno.historialDe(socio, id));
+      HistorialTurnos historial = servicioTurno.historialDe(socio, id);
+      modelo.put("historial", historial);
+      modelo.put("resenasPorTurno", mapaResenasPorTurno(historial));
     } catch (TurnoInvalido e) {
       return new ModelAndView("redirect:/home");
     }
     return new ModelAndView("mascota-perfil", modelo);
+  }
+
+  private Map<Long, Boolean> mapaResenasPorTurno(HistorialTurnos historial) {
+    Map<Long, Boolean> mapa = new HashMap<>();
+    for (Turno turno : historial.getPasados()) {
+      if (turno.estaFinalizado()) {
+        mapa.put(turno.getId(), servicioResena.socioYaReseno(turno.getId()));
+      }
+    }
+    return mapa;
   }
 
   @RequestMapping(path = "/mascotas/{id}/cambiar-plan", method = RequestMethod.POST)

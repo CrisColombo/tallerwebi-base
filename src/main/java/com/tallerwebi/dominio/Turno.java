@@ -110,4 +110,12 @@ public class Turno {
   public void setServicio(Servicio servicio) {
     this.servicio = servicio;
   }
+
+  public void finalizar() {
+    estado = EstadoTurno.FINALIZADO;
+  }
+
+  public boolean estaFinalizado() {
+    return estado == EstadoTurno.FINALIZADO;
+  }
 }

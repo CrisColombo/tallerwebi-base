@@ -12,6 +12,7 @@ import com.tallerwebi.dominio.Mascota;
 import com.tallerwebi.dominio.Plan;
 import com.tallerwebi.dominio.ServicioMascota;
 import com.tallerwebi.dominio.ServicioPlan;
+import com.tallerwebi.dominio.ServicioResena;
 import com.tallerwebi.dominio.ServicioSocio;
 import com.tallerwebi.dominio.ServicioTurno;
 import com.tallerwebi.dominio.Socio;
@@ -43,8 +44,15 @@ public class ControladorMascotaTest {
     servicioPlan = mock(ServicioPlan.class);
     servicioMascota = mock(ServicioMascota.class);
     servicioTurno = mock(ServicioTurno.class);
+    ServicioResena servicioResena = mock(ServicioResena.class);
     controladorMascota =
-      new ControladorMascota(servicioSocio, servicioPlan, servicioMascota, servicioTurno);
+      new ControladorMascota(
+        servicioSocio,
+        servicioPlan,
+        servicioMascota,
+        servicioTurno,
+        servicioResena
+      );
     sesion = mock(HttpSession.class);
     when(sesion.getAttribute(ControladorLogin.USUARIO_ID)).thenReturn(1L);
     socio = new Socio();
