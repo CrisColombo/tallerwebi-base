@@ -55,6 +55,15 @@ public class ServicioNotificacionMail implements ServicioNotificacion {
     );
   }
 
+  @Override
+  public void enviarRecordatorioTurno(Turno turno, String emailDestino) {
+    enviar(
+      emailDestino,
+      "Recordatorio de tu turno en " + turno.getVeterinaria().getNombre(),
+      armarHtml(turno, "Recordatorio de turno", "Se acerca el turno de {{mascota}}", "#155e75")
+    );
+  }
+
   private void enviar(String emailDestino, String asunto, String html) {
     String usuario = requerido("MAIL_USER");
     String clave = requerido("MAIL_PASSWORD");

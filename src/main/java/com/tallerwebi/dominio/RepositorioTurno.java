@@ -10,5 +10,6 @@ public interface RepositorioTurno {
   List<Turno> listarPorSocio(Long socioId);
   List<Turno> listarPorVeterinaria(Long veterinariaId);
   List<Turno> listarPorMascota(Long mascotaId);
+  List<Turno> listarConfirmadosSinRecordatorio(LocalDate desde, LocalDate hasta);
   List<LocalTime> horasOcupadas(Long veterinariaId, LocalDate fecha);
 }

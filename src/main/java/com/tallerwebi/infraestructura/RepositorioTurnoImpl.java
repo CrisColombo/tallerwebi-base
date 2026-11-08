@@ -69,4 +69,18 @@ public class RepositorioTurnoImpl extends RepositorioBase<Turno> implements Repo
       .setParameter("estado", EstadoTurno.CONFIRMADO)
       .getResultList();
   }
+
+  @Override
+  public List<Turno> listarConfirmadosSinRecordatorio(LocalDate desde, LocalDate hasta) {
+    return sesion()
+      .createQuery(
+        "from Turno t where t.estado = :estado and t.recordatorioEnviado = false " +
+        "and t.fecha between :desde and :hasta order by t.fecha, t.hora",
+        Turno.class
+      )
+      .setParameter("estado", EstadoTurno.CONFIRMADO)
+      .setParameter("desde", desde)
+      .setParameter("hasta", hasta)
+      .getResultList();
+  }
 }
