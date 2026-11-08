@@ -152,4 +152,25 @@ public class RepositorioTurnoTest {
       contains(temprano, tarde)
     );
   }
+
+  @Test
+  @Transactional
+  @Rollback
+  public void listarConfirmadosSinRecordatorioDeberiaDevolverSoloLosPendientesDelRango() {
+    Mascota mascota = dadoUnSocioConMascota("30111222");
+    dadaUnaVeterinariaConServicio();
+    Turno pendiente = guardarTurno(mascota, FECHA, DIEZ);
+    Turno yaAvisado = guardarTurno(mascota, FECHA, LocalTime.of(11, 0));
+    yaAvisado.marcarRecordatorioEnviado();
+    Turno cancelado = guardarTurno(mascota, FECHA, LocalTime.of(12, 0));
+    cancelado.cancelar();
+    guardarTurno(mascota, FECHA.plusDays(5), DIEZ);
+
+    List<Turno> turnos = repositorioTurno.listarConfirmadosSinRecordatorio(
+      FECHA,
+      FECHA.plusDays(1)
+    );
+
+    assertThat(turnos, contains(pendiente));
+  }
 }

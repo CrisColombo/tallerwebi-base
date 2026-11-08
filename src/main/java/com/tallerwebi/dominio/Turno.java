@@ -24,6 +24,7 @@ public class Turno {
   private EstadoTurno estado = EstadoTurno.CONFIRMADO;
 
   private String observaciones;
+  private boolean recordatorioEnviado;
 
   @ManyToOne
   private Mascota mascota;
@@ -42,9 +43,18 @@ public class Turno {
     estado = EstadoTurno.CANCELADO;
   }
 
+  public boolean isRecordatorioEnviado() {
+    return recordatorioEnviado;
+  }
+
+  public void marcarRecordatorioEnviado() {
+    recordatorioEnviado = true;
+  }
+
   public void reprogramar(LocalDate nuevaFecha, LocalTime nuevaHora) {
     setFecha(nuevaFecha);
     setHora(nuevaHora);
+    recordatorioEnviado = false;
   }
 
   public Long getId() {
