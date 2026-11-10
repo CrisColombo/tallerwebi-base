@@ -15,9 +15,10 @@ public class ServicioMascotaImpl implements ServicioMascota {
 
   @Autowired
   public ServicioMascotaImpl(
-      RepositorioMascota repositorioMascota,
-      RepositorioPlan repositorioPlan,
-      RepositorioSocio repositorioSocio) {
+    RepositorioMascota repositorioMascota,
+    RepositorioPlan repositorioPlan,
+    RepositorioSocio repositorioSocio
+  ) {
     this.repositorioMascota = repositorioMascota;
     this.repositorioPlan = repositorioPlan;
     this.repositorioSocio = repositorioSocio;
@@ -25,7 +26,7 @@ public class ServicioMascotaImpl implements ServicioMascota {
 
   @Override
   public Mascota agregarMascota(Socio socio, Mascota mascota, Long planId)
-      throws DatosDeRegistroInvalidos {
+    throws DatosDeRegistroInvalidos {
     ValidadorMascota.validar(mascota, "El nombre y la especie de la mascota son obligatorios");
     mascota.setId(null);
     mascota.setPlan(buscarPlan(planId));
@@ -60,13 +61,10 @@ public class ServicioMascotaImpl implements ServicioMascota {
 
   @Override
   public Mascota buscarPorIdParaSocio(Socio socio, Long mascotaId) {
-    if (socio == null || socio.getId() == null || mascotaId == null)
-      return null;
+    if (socio == null || socio.getId() == null || mascotaId == null) return null;
     Mascota mascota = repositorioMascota.buscarPorId(mascotaId);
-    if (mascota == null || mascota.getSocio() == null)
-      return null;
-    if (!socio.getId().equals(mascota.getSocio().getId()))
-      return null;
+    if (mascota == null || mascota.getSocio() == null) return null;
+    if (!socio.getId().equals(mascota.getSocio().getId())) return null;
     return mascota;
   }
 

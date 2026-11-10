@@ -26,7 +26,8 @@ public class ServicioMascotaTest {
     repositorioMascota = mock(RepositorioMascota.class);
     repositorioPlan = mock(RepositorioPlan.class);
     repositorioSocio = mock(RepositorioSocio.class);
-    servicioMascota = new ServicioMascotaImpl(repositorioMascota, repositorioPlan, repositorioSocio);
+    servicioMascota =
+      new ServicioMascotaImpl(repositorioMascota, repositorioPlan, repositorioSocio);
 
     Usuario usuario = new Usuario();
     usuario.setId(1L);
@@ -109,7 +110,7 @@ public class ServicioMascotaTest {
 
   @Test
   public void agregarMascotaDeberiaAsociarlaAlSocioYAsignarleElPlanSinActivarElMes()
-      throws Exception {
+    throws Exception {
     mascota.setId(99L);
 
     Mascota creada = servicioMascota.agregarMascota(socio, mascota, 2L);
@@ -128,8 +129,9 @@ public class ServicioMascotaTest {
     mascota.setFechaNacimiento(LocalDate.now().plusDays(1));
 
     assertThrows(
-        DatosDeRegistroInvalidos.class,
-        () -> servicioMascota.agregarMascota(socio, mascota, 2L));
+      DatosDeRegistroInvalidos.class,
+      () -> servicioMascota.agregarMascota(socio, mascota, 2L)
+    );
     verifyNoInteractions(repositorioSocio);
   }
 
@@ -138,8 +140,9 @@ public class ServicioMascotaTest {
     when(repositorioPlan.buscarPorId(3L)).thenReturn(null);
 
     assertThrows(
-        DatosDeRegistroInvalidos.class,
-        () -> servicioMascota.agregarMascota(socio, mascota, 3L));
+      DatosDeRegistroInvalidos.class,
+      () -> servicioMascota.agregarMascota(socio, mascota, 3L)
+    );
     verifyNoInteractions(repositorioSocio);
   }
 }

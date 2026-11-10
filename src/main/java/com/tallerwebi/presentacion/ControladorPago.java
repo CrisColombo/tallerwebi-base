@@ -29,9 +29,10 @@ public class ControladorPago extends ControladorConSocio {
 
   @RequestMapping(path = "/mascotas/{id}/pagar-plan", method = RequestMethod.POST)
   public ModelAndView pagarPlan(
-      @PathVariable("id") Long mascotaId,
-      @RequestParam("planId") Long planId,
-      HttpSession sesion) {
+    @PathVariable("id") Long mascotaId,
+    @RequestParam("planId") Long planId,
+    HttpSession sesion
+  ) {
     Socio socio = socioLogueado(sesion);
 
     if (socio == null) {
@@ -48,10 +49,11 @@ public class ControladorPago extends ControladorConSocio {
 
   @RequestMapping(path = "/pago/exito", method = RequestMethod.GET)
   public ModelAndView pagoExito(
-      @RequestParam(value = "payment_id", required = false) String paymentId,
-      @RequestParam(value = "collection_id", required = false) String collectionId,
-      @RequestParam(value = "external_reference", required = false) String referencia,
-      HttpSession sesion) {
+    @RequestParam(value = "payment_id", required = false) String paymentId,
+    @RequestParam(value = "collection_id", required = false) String collectionId,
+    @RequestParam(value = "external_reference", required = false) String referencia,
+    HttpSession sesion
+  ) {
     Socio socio = socioLogueado(sesion);
 
     if (socio == null) {
@@ -67,21 +69,21 @@ public class ControladorPago extends ControladorConSocio {
 
   @RequestMapping(path = "/pago/error", method = RequestMethod.GET)
   public ModelAndView pagoError(
-      @RequestParam(value = "external_reference", required = false) String referencia) {
+    @RequestParam(value = "external_reference", required = false) String referencia
+  ) {
     return vistaResultado("pago-error", referencia, "No se pudo completar el pago.");
   }
 
   @RequestMapping(path = "/pago/pendiente", method = RequestMethod.GET)
   public ModelAndView pagoPendiente(
-      @RequestParam(value = "external_reference", required = false) String referencia) {
+    @RequestParam(value = "external_reference", required = false) String referencia
+  ) {
     return vistaResultado("pago-pendiente", referencia, null);
   }
 
   private static String idDePago(String paymentId, String collectionId) {
-    if (idUtil(paymentId))
-      return paymentId;
-    if (idUtil(collectionId))
-      return collectionId;
+    if (idUtil(paymentId)) return paymentId;
+    if (idUtil(collectionId)) return collectionId;
     return null;
   }
 
@@ -92,10 +94,8 @@ public class ControladorPago extends ControladorConSocio {
   private ModelAndView vistaResultado(String vista, String referencia, String mensaje) {
     Map<String, Object> modelo = new ModelMap();
     Long mascotaId = ReferenciaPagoMascota.mascotaIdDe(referencia);
-    if (mascotaId != null)
-      modelo.put("mascotaId", mascotaId);
-    if (mensaje != null)
-      modelo.put("mensaje", mensaje);
+    if (mascotaId != null) modelo.put("mascotaId", mascotaId);
+    if (mensaje != null) modelo.put("mensaje", mensaje);
     return new ModelAndView(vista, modelo);
   }
 

@@ -30,25 +30,28 @@ public class ServicioTurnoImpl implements ServicioTurno {
 
   @Autowired
   public ServicioTurnoImpl(
-      RepositorioTurno repositorioTurno,
-      RepositorioVeterinaria repositorioVeterinaria,
-      RepositorioServicio repositorioServicio,
-      ServicioNotificacion servicioNotificacion) {
+    RepositorioTurno repositorioTurno,
+    RepositorioVeterinaria repositorioVeterinaria,
+    RepositorioServicio repositorioServicio,
+    ServicioNotificacion servicioNotificacion
+  ) {
     this(
-        repositorioTurno,
-        repositorioVeterinaria,
-        repositorioServicio,
-        servicioNotificacion,
-        Clock.systemDefaultZone());
+      repositorioTurno,
+      repositorioVeterinaria,
+      repositorioServicio,
+      servicioNotificacion,
+      Clock.systemDefaultZone()
+    );
   }
 
   // Permite fijar "hoy" en los tests.
   public ServicioTurnoImpl(
-      RepositorioTurno repositorioTurno,
-      RepositorioVeterinaria repositorioVeterinaria,
-      RepositorioServicio repositorioServicio,
-      ServicioNotificacion servicioNotificacion,
-      Clock reloj) {
+    RepositorioTurno repositorioTurno,
+    RepositorioVeterinaria repositorioVeterinaria,
+    RepositorioServicio repositorioServicio,
+    ServicioNotificacion servicioNotificacion,
+    Clock reloj
+  ) {
     this.repositorioTurno = repositorioTurno;
     this.repositorioVeterinaria = repositorioVeterinaria;
     this.repositorioServicio = repositorioServicio;
@@ -59,17 +62,19 @@ public class ServicioTurnoImpl implements ServicioTurno {
   @Override
   public List<LocalTime> horariosDisponibles(Veterinaria veterinaria, LocalDate fecha) {
     LocalDate hoy = LocalDate.now(reloj);
-    if (veterinaria == null || fecha == null || fecha.isBefore(hoy) || !veterinaria.atiendeEl(fecha)) {
+    if (
+      veterinaria == null || fecha == null || fecha.isBefore(hoy) || !veterinaria.atiendeEl(fecha)
+    ) {
       return List.of();
     }
     List<LocalTime> ocupadas = repositorioTurno.horasOcupadas(veterinaria.getId(), fecha);
     LocalTime ahora = LocalTime.now(reloj);
     return veterinaria
-        .horariosDeAtencion()
-        .stream()
-        .filter(h -> !ocupadas.contains(h))
-        .filter(h -> fecha.isAfter(hoy) || h.isAfter(ahora))
-        .collect(Collectors.toList());
+      .horariosDeAtencion()
+      .stream()
+      .filter(h -> !ocupadas.contains(h))
+      .filter(h -> fecha.isAfter(hoy) || h.isAfter(ahora))
+      .collect(Collectors.toList());
   }
 
   @Override
@@ -109,7 +114,7 @@ public class ServicioTurnoImpl implements ServicioTurno {
   }
 
   private void validarServicio(Mascota mascota, Veterinaria veterinaria, Servicio servicio)
-      throws TurnoInvalido {
+    throws TurnoInvalido {
     if (veterinaria == null || servicio == null) {
       throw new TurnoInvalido("Elegí una veterinaria y un servicio");
     }
@@ -119,19 +124,21 @@ public class ServicioTurnoImpl implements ServicioTurno {
     }
     if (!mascota.tieneCubierto(servicio)) {
       throw new TurnoInvalido(
-          servicio.getNombre() + " no está incluido en el plan de " + mascota.getNombre());
+        servicio.getNombre() + " no está incluido en el plan de " + mascota.getNombre()
+      );
     }
   }
 
   private void exigirPlanVigente(Mascota mascota) throws TurnoInvalido {
     if (mascota.getPlan() == null || !mascota.suscripcionAlDia()) {
       throw new TurnoInvalido(
-          "Tu mascota no tiene un plan vigente. Pagá la suscripción para sacar un turno.");
+        "Tu mascota no tiene un plan vigente. Pagá la suscripción para sacar un turno."
+      );
     }
   }
 
   private void validarHorario(Veterinaria veterinaria, LocalDate fecha, LocalTime hora)
-      throws TurnoInvalido {
+    throws TurnoInvalido {
     if (fecha == null || hora == null) {
       throw new TurnoInvalido("Elegí fecha y horario");
     }
@@ -172,7 +179,7 @@ public class ServicioTurnoImpl implements ServicioTurno {
 
   @Override
   public void reprogramar(Socio socio, Long turnoId, LocalDate diaNuevo, LocalTime horaNueva)
-      throws TurnoInvalido {
+    throws TurnoInvalido {
     Turno turno = buscarTurnoDe(socio, turnoId);
     if (!turno.estaConfirmado()) {
       throw new TurnoInvalido("Solo se pueden reprogramar turnos confirmados");
@@ -186,10 +193,11 @@ public class ServicioTurnoImpl implements ServicioTurno {
 
   @Override
   public void reprogramarPorVeterinaria(
-      Veterinaria veterinaria,
-      Long turnoId,
-      LocalDate diaNuevo,
-      LocalTime horaNueva) throws TurnoInvalido {
+    Veterinaria veterinaria,
+    Long turnoId,
+    LocalDate diaNuevo,
+    LocalTime horaNueva
+  ) throws TurnoInvalido {
     Turno turno = buscarTurnoDeVeterinaria(veterinaria, turnoId);
     if (!turno.estaConfirmado()) {
       throw new TurnoInvalido("Solo se pueden reprogramar turnos confirmados");
@@ -200,12 +208,14 @@ public class ServicioTurnoImpl implements ServicioTurno {
 
   @Override
   public Turno buscarTurnoDeVeterinaria(Veterinaria veterinaria, Long turnoId)
-      throws TurnoInvalido {
+    throws TurnoInvalido {
     Turno turno = turnoId == null ? null : repositorioTurno.buscarPorId(turnoId);
-    if (veterinaria == null ||
-        turno == null ||
-        turno.getVeterinaria() == null ||
-        !Objects.equals(veterinaria.getId(), turno.getVeterinaria().getId())) {
+    if (
+      veterinaria == null ||
+      turno == null ||
+      turno.getVeterinaria() == null ||
+      !Objects.equals(veterinaria.getId(), turno.getVeterinaria().getId())
+    ) {
       throw new TurnoInvalido("No encontramos ese turno");
     }
     return turno;
@@ -221,15 +231,15 @@ public class ServicioTurnoImpl implements ServicioTurno {
     Comparator<Turno> porMomento = Comparator.comparing(this::momento);
 
     List<Turno> proximos = turnos
-        .stream()
-        .filter(t -> esProximo(t, ahora))
-        .sorted(porMomento)
-        .collect(Collectors.toList());
+      .stream()
+      .filter(t -> esProximo(t, ahora))
+      .sorted(porMomento)
+      .collect(Collectors.toList());
     List<Turno> pasados = turnos
-        .stream()
-        .filter(t -> !esProximo(t, ahora))
-        .sorted(porMomento.reversed())
-        .collect(Collectors.toList());
+      .stream()
+      .filter(t -> !esProximo(t, ahora))
+      .sorted(porMomento.reversed())
+      .collect(Collectors.toList());
     return new HistorialTurnos(proximos, pasados);
   }
 
