@@ -49,14 +49,17 @@ public class ServicioTurnoTest {
     repositorioServicioMock = mock(RepositorioServicio.class);
     servicioNotificacionMock = mock(ServicioNotificacion.class);
     Clock reloj = Clock.fixed(
-        LocalDateTime.of(HOY, LocalTime.NOON).atZone(ZoneId.systemDefault()).toInstant(),
-        ZoneId.systemDefault());
-    servicioTurno = new ServicioTurnoImpl(
+      LocalDateTime.of(HOY, LocalTime.NOON).atZone(ZoneId.systemDefault()).toInstant(),
+      ZoneId.systemDefault()
+    );
+    servicioTurno =
+      new ServicioTurnoImpl(
         repositorioTurnoMock,
         repositorioVeterinariaMock,
         repositorioServicioMock,
         servicioNotificacionMock,
-        reloj);
+        reloj
+      );
 
     consulta = dadoUnServicio(1L, "Consulta clínica", 1);
     cirugia = dadoUnServicio(2L, "Cirugía", 2);
@@ -134,12 +137,14 @@ public class ServicioTurnoTest {
     firulais.setVenceSuscripcion(null);
 
     TurnoInvalido error = assertThrows(
-        TurnoInvalido.class,
-        () -> servicioTurno.reservar(socio, dadaUnaSolicitud(1L, JUEVES, DIEZ)));
+      TurnoInvalido.class,
+      () -> servicioTurno.reservar(socio, dadaUnaSolicitud(1L, JUEVES, DIEZ))
+    );
 
     assertThat(
-        error.getMessage(),
-        equalTo("Tu mascota no tiene un plan vigente. Pagá la suscripción para sacar un turno."));
+      error.getMessage(),
+      equalTo("Tu mascota no tiene un plan vigente. Pagá la suscripción para sacar un turno.")
+    );
     verify(repositorioTurnoMock, never()).guardar(any());
   }
 
@@ -148,20 +153,23 @@ public class ServicioTurnoTest {
     firulais.setVenceSuscripcion(HOY.minusDays(1));
 
     TurnoInvalido error = assertThrows(
-        TurnoInvalido.class,
-        () -> servicioTurno.reservar(socio, dadaUnaSolicitud(1L, JUEVES, DIEZ)));
+      TurnoInvalido.class,
+      () -> servicioTurno.reservar(socio, dadaUnaSolicitud(1L, JUEVES, DIEZ))
+    );
 
     assertThat(
-        error.getMessage(),
-        equalTo("Tu mascota no tiene un plan vigente. Pagá la suscripción para sacar un turno."));
+      error.getMessage(),
+      equalTo("Tu mascota no tiene un plan vigente. Pagá la suscripción para sacar un turno.")
+    );
     verify(repositorioTurnoMock, never()).guardar(any());
   }
 
   @Test
   public void reservarUnServicioQueNoCubreElPlanDeberiaFallar() {
     TurnoInvalido error = assertThrows(
-        TurnoInvalido.class,
-        () -> servicioTurno.reservar(socio, dadaUnaSolicitud(2L, JUEVES, DIEZ)));
+      TurnoInvalido.class,
+      () -> servicioTurno.reservar(socio, dadaUnaSolicitud(2L, JUEVES, DIEZ))
+    );
 
     assertThat(error.getMessage(), equalTo("Cirugía no está incluido en el plan de Firulais"));
     verify(repositorioTurnoMock, never()).guardar(any());
@@ -173,8 +181,9 @@ public class ServicioTurnoTest {
     when(repositorioServicioMock.buscarPorId(3L)).thenReturn(vacunacion);
 
     assertThrows(
-        TurnoInvalido.class,
-        () -> servicioTurno.reservar(socio, dadaUnaSolicitud(3L, JUEVES, DIEZ)));
+      TurnoInvalido.class,
+      () -> servicioTurno.reservar(socio, dadaUnaSolicitud(3L, JUEVES, DIEZ))
+    );
   }
 
   @Test
@@ -182,8 +191,9 @@ public class ServicioTurnoTest {
     when(repositorioTurnoMock.horasOcupadas(10L, JUEVES)).thenReturn(List.of(DIEZ));
 
     TurnoInvalido error = assertThrows(
-        TurnoInvalido.class,
-        () -> servicioTurno.reservar(socio, dadaUnaSolicitud(1L, JUEVES, DIEZ)));
+      TurnoInvalido.class,
+      () -> servicioTurno.reservar(socio, dadaUnaSolicitud(1L, JUEVES, DIEZ))
+    );
 
     assertThat(error.getMessage(), equalTo("El horario elegido ya no está disponible"));
   }
@@ -191,15 +201,17 @@ public class ServicioTurnoTest {
   @Test
   public void reservarFueraDelHorarioDeAtencionDeberiaFallar() {
     assertThrows(
-        TurnoInvalido.class,
-        () -> servicioTurno.reservar(socio, dadaUnaSolicitud(1L, JUEVES, LocalTime.of(15, 0))));
+      TurnoInvalido.class,
+      () -> servicioTurno.reservar(socio, dadaUnaSolicitud(1L, JUEVES, LocalTime.of(15, 0)))
+    );
   }
 
   @Test
   public void reservarSinFechaDeberiaFallar() {
     assertThrows(
-        TurnoInvalido.class,
-        () -> servicioTurno.reservar(socio, dadaUnaSolicitud(1L, null, DIEZ)));
+      TurnoInvalido.class,
+      () -> servicioTurno.reservar(socio, dadaUnaSolicitud(1L, null, DIEZ))
+    );
   }
 
   @Test
@@ -263,8 +275,9 @@ public class ServicioTurnoTest {
     when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
 
     assertThrows(
-        TurnoInvalido.class,
-        () -> servicioTurno.reprogramarPorVeterinaria(veterinaria, 5L, JUEVES, DIEZ));
+      TurnoInvalido.class,
+      () -> servicioTurno.reprogramarPorVeterinaria(veterinaria, 5L, JUEVES, DIEZ)
+    );
   }
 
   @Test
@@ -305,67 +318,13 @@ public class ServicioTurnoTest {
   @Test
   public void siElMailFallaElTurnoIgualDeberiaQuedarReservado() throws TurnoInvalido {
     doThrow(new IllegalStateException("SMTP caído"))
-        .when(servicioNotificacionMock)
-        .enviarConfirmacionTurno(any(), anyString());
+      .when(servicioNotificacionMock)
+      .enviarConfirmacionTurno(any(), anyString());
 
     Turno turno = servicioTurno.reservar(socio, dadaUnaSolicitud(1L, JUEVES, DIEZ));
 
     verify(repositorioTurnoMock, times(1)).guardar(turno);
     assertThat(turno.getEstado(), is(EstadoTurno.CONFIRMADO));
-  }
-
-  private Servicio dadoUnServicio(Long id, String nombre, int nivel) {
-    Servicio servicio = new Servicio();
-    servicio.setId(id);
-    servicio.setNombre(nombre);
-    servicio.setNivelRequerido(nivel);
-    return servicio;
-  }
-
-  private Veterinaria dadaUnaVeterinariaQueAtiendeDe9A12(Servicio... servicios) {
-    Veterinaria vet = new Veterinaria();
-    vet.setId(10L);
-    vet.setNombre("Veterinaria San Justo");
-    vet.setHoraApertura(LocalTime.of(9, 0));
-    vet.setHoraCierre(LocalTime.of(12, 0));
-    vet.getServicios().addAll(List.of(servicios));
-    return vet;
-  }
-
-  private Mascota dadaUnaMascotaConPlanBasico() {
-    Plan basico = new Plan();
-    basico.setNivel(1);
-    Mascota mascota = new Mascota();
-    mascota.setId(1L);
-    mascota.setNombre("Firulais");
-    mascota.setPlan(basico);
-    mascota.setVenceSuscripcion(LocalDate.now().plusMonths(1));
-    return mascota;
-  }
-
-  private SolicitudTurno dadaUnaSolicitud(Long servicioId, LocalDate fecha, LocalTime hora) {
-    SolicitudTurno solicitud = new SolicitudTurno();
-    solicitud.setMascotaId(1L);
-    solicitud.setVeterinariaId(10L);
-    solicitud.setServicioId(servicioId);
-    solicitud.setFecha(fecha);
-    solicitud.setHora(hora);
-    return solicitud;
-  }
-
-  private Turno dadoUnTurnoDe(Mascota mascota) {
-    Turno turno = new Turno();
-    turno.setMascota(mascota);
-    return turno;
-  }
-
-  private Turno dadoUnTurno(LocalDate fecha, LocalTime hora, EstadoTurno estado) {
-    Turno turno = new Turno();
-    turno.setMascota(firulais);
-    turno.setFecha(fecha);
-    turno.setHora(hora);
-    turno.setEstado(estado);
-    return turno;
   }
 
   @Test
@@ -453,8 +412,9 @@ public class ServicioTurnoTest {
     when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
 
     TurnoInvalido error = assertThrows(
-        TurnoInvalido.class,
-        () -> servicioTurno.reprogramar(socio, 5L, viernes, nueveTreinta));
+      TurnoInvalido.class,
+      () -> servicioTurno.reprogramar(socio, 5L, viernes, nueveTreinta)
+    );
 
     assertThat(error.getMessage(), equalTo("Solo se pueden reprogramar turnos confirmados"));
     assertThat(turno.getFecha(), is(JUEVES));
@@ -474,8 +434,9 @@ public class ServicioTurnoTest {
     when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
 
     TurnoInvalido error = assertThrows(
-        TurnoInvalido.class,
-        () -> servicioTurno.reprogramar(socio, 5L, viernes, nueveTreinta));
+      TurnoInvalido.class,
+      () -> servicioTurno.reprogramar(socio, 5L, viernes, nueveTreinta)
+    );
 
     assertThat(error.getMessage(), equalTo("No encontramos ese turno"));
     assertThat(turno.getFecha(), is(JUEVES));
@@ -491,11 +452,12 @@ public class ServicioTurnoTest {
     when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
 
     when(repositorioTurnoMock.horasOcupadas(veterinaria.getId(), viernes))
-        .thenReturn(List.of(nueveTreinta));
+      .thenReturn(List.of(nueveTreinta));
 
     TurnoInvalido error = assertThrows(
-        TurnoInvalido.class,
-        () -> servicioTurno.reprogramar(socio, 5L, viernes, nueveTreinta));
+      TurnoInvalido.class,
+      () -> servicioTurno.reprogramar(socio, 5L, viernes, nueveTreinta)
+    );
 
     assertThat(error.getMessage(), equalTo("El horario elegido ya no está disponible"));
     assertThat(turno.getFecha(), is(JUEVES));
@@ -509,8 +471,9 @@ public class ServicioTurnoTest {
     when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
 
     TurnoInvalido error = assertThrows(
-        TurnoInvalido.class,
-        () -> servicioTurno.reprogramar(socio, 5L, null, DIEZ));
+      TurnoInvalido.class,
+      () -> servicioTurno.reprogramar(socio, 5L, null, DIEZ)
+    );
 
     assertThat(error.getMessage(), equalTo("Elegí fecha y horario"));
     assertThrows(TurnoInvalido.class, () -> servicioTurno.reprogramar(socio, 5L, JUEVES, null));
@@ -537,9 +500,110 @@ public class ServicioTurnoTest {
     when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
 
     TurnoInvalido error = assertThrows(
-        TurnoInvalido.class,
-        () -> servicioTurno.buscarTurnoDe(socio, 5L));
+      TurnoInvalido.class,
+      () -> servicioTurno.buscarTurnoDe(socio, 5L)
+    );
 
     assertThat(error.getMessage(), equalTo("No encontramos ese turno"));
+  }
+
+  @Test
+  public void cancelarUnTurnoDelSocioDeberiaEnviarElMailDeCancelacion() throws TurnoInvalido {
+    Turno turno = dadoUnTurnoDe(firulais);
+    when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
+
+    servicioTurno.cancelar(socio, 5L);
+
+    verify(servicioNotificacionMock, times(1)).enviarCancelacionTurno(turno, "socio@mail.com");
+    verify(servicioNotificacionMock, never()).enviarConfirmacionTurno(any(), anyString());
+  }
+
+  @Test
+  public void cancelarPorVeterinariaDeberiaEnviarElMailDeCancelacionAlSocio() throws TurnoInvalido {
+    Turno turno = dadoUnTurnoDe(firulais);
+    turno.setVeterinaria(veterinaria);
+    when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
+
+    servicioTurno.cancelarPorVeterinaria(veterinaria, 5L);
+
+    verify(servicioNotificacionMock, times(1)).enviarCancelacionTurno(turno, "socio@mail.com");
+  }
+
+  @Test
+  public void siElMailDeCancelacionFallaElTurnoIgualDeberiaQuedarCancelado() throws TurnoInvalido {
+    doThrow(new IllegalStateException("SMTP caído"))
+      .when(servicioNotificacionMock)
+      .enviarCancelacionTurno(any(), anyString());
+    Turno turno = dadoUnTurnoDe(firulais);
+    when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
+
+    servicioTurno.cancelar(socio, 5L);
+
+    assertThat(turno.getEstado(), is(EstadoTurno.CANCELADO));
+  }
+
+  @Test
+  public void cancelarUnTurnoYaCanceladoNoDeberiaEnviarNingunMail() {
+    Turno turno = dadoUnTurnoDe(firulais);
+    turno.cancelar();
+    when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
+
+    assertThrows(TurnoInvalido.class, () -> servicioTurno.cancelar(socio, 5L));
+
+    verifyNoInteractions(servicioNotificacionMock);
+  }
+
+  private Servicio dadoUnServicio(Long id, String nombre, int nivel) {
+    Servicio servicio = new Servicio();
+    servicio.setId(id);
+    servicio.setNombre(nombre);
+    servicio.setNivelRequerido(nivel);
+    return servicio;
+  }
+
+  private Veterinaria dadaUnaVeterinariaQueAtiendeDe9A12(Servicio... servicios) {
+    Veterinaria vet = new Veterinaria();
+    vet.setId(10L);
+    vet.setNombre("Veterinaria San Justo");
+    vet.setHoraApertura(LocalTime.of(9, 0));
+    vet.setHoraCierre(LocalTime.of(12, 0));
+    vet.getServicios().addAll(List.of(servicios));
+    return vet;
+  }
+
+  private Mascota dadaUnaMascotaConPlanBasico() {
+    Plan basico = new Plan();
+    basico.setNivel(1);
+    Mascota mascota = new Mascota();
+    mascota.setId(1L);
+    mascota.setNombre("Firulais");
+    mascota.setPlan(basico);
+    mascota.setVenceSuscripcion(LocalDate.now().plusMonths(1));
+    return mascota;
+  }
+
+  private SolicitudTurno dadaUnaSolicitud(Long servicioId, LocalDate fecha, LocalTime hora) {
+    SolicitudTurno solicitud = new SolicitudTurno();
+    solicitud.setMascotaId(1L);
+    solicitud.setVeterinariaId(10L);
+    solicitud.setServicioId(servicioId);
+    solicitud.setFecha(fecha);
+    solicitud.setHora(hora);
+    return solicitud;
+  }
+
+  private Turno dadoUnTurnoDe(Mascota mascota) {
+    Turno turno = new Turno();
+    turno.setMascota(mascota);
+    return turno;
+  }
+
+  private Turno dadoUnTurno(LocalDate fecha, LocalTime hora, EstadoTurno estado) {
+    Turno turno = new Turno();
+    turno.setMascota(firulais);
+    turno.setFecha(fecha);
+    turno.setHora(hora);
+    turno.setEstado(estado);
+    return turno;
   }
 }

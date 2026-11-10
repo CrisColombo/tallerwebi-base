@@ -9,6 +9,7 @@ import java.time.LocalTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.BiConsumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -90,20 +91,20 @@ public class ServicioTurnoImpl implements ServicioTurno {
     turno.setHora(solicitud.getHora());
     turno.setObservaciones(solicitud.getObservaciones());
     repositorioTurno.guardar(turno);
-    notificarConfirmacion(socio, turno);
+    notificar(socio, turno, servicioNotificacion::enviarConfirmacionTurno);
     return turno;
   }
 
-  private void notificarConfirmacion(Socio socio, Turno turno) {
+  private void notificar(Socio socio, Turno turno, BiConsumer<Turno, String> envio) {
     try {
       Usuario usuario = socio.getUsuario();
       String email = usuario == null ? null : usuario.getEmail();
       if (email == null || email.isBlank()) {
         return;
       }
-      servicioNotificacion.enviarConfirmacionTurno(turno, email);
+      envio.accept(turno, email);
     } catch (Exception e) {
-      LOGGER.log(Level.WARNING, "No se pudo enviar el mail de confirmación del turno", e);
+      LOGGER.log(Level.WARNING, "No se pudo enviar el mail del turno", e);
     }
   }
 
@@ -156,6 +157,7 @@ public class ServicioTurnoImpl implements ServicioTurno {
       throw new TurnoInvalido("Solo se pueden cancelar turnos confirmados");
     }
     turno.cancelar();
+    notificar(socio, turno, servicioNotificacion::enviarCancelacionTurno);
   }
 
   @Override
@@ -165,6 +167,7 @@ public class ServicioTurnoImpl implements ServicioTurno {
       throw new TurnoInvalido("Solo se pueden cancelar turnos confirmados");
     }
     turno.cancelar();
+    notificar(turno.getMascota().getSocio(), turno, servicioNotificacion::enviarCancelacionTurno);
   }
 
   @Override
