@@ -22,6 +22,7 @@ public class ControladorMascota extends ControladorConSocio {
   private ServicioPlan servicioPlan;
   private ServicioMascota servicioMascota;
   private ServicioTurno servicioTurno;
+  private ServicioReceta servicioReceta;
   private static final String REDIRECT_HOME = "redirect:/home";
 
   @Autowired
@@ -29,12 +30,14 @@ public class ControladorMascota extends ControladorConSocio {
     ServicioSocio servicioSocio,
     ServicioPlan servicioPlan,
     ServicioMascota servicioMascota,
-    ServicioTurno servicioTurno
+    ServicioTurno servicioTurno,
+    ServicioReceta servicioReceta
   ) {
     super(servicioSocio);
     this.servicioPlan = servicioPlan;
     this.servicioMascota = servicioMascota;
     this.servicioTurno = servicioTurno;
+    this.servicioReceta = servicioReceta;
   }
 
   @RequestMapping(path = "/mascotas/nueva", method = RequestMethod.GET)
@@ -90,10 +93,31 @@ public class ControladorMascota extends ControladorConSocio {
     modelo.put("planes", servicioPlan.listar());
     try {
       modelo.put("historial", servicioTurno.historialDe(socio, id));
+      modelo.put("recetas", servicioReceta.recetasDe(socio, id));
     } catch (TurnoInvalido e) {
       return new ModelAndView("redirect:/home");
     }
     return new ModelAndView("mascota-perfil", modelo);
+  }
+
+  @RequestMapping(path = "/mascotas/{id}/recetas/{recetaId}/comprada", method = RequestMethod.POST)
+  public ModelAndView marcarRecetaComprada(
+    @PathVariable("id") Long mascotaId,
+    @PathVariable("recetaId") Long recetaId,
+    HttpSession sesion,
+    RedirectAttributes redirectAttributes
+  ) {
+    Socio socio = socioLogueado(sesion);
+    if (socio == null) {
+      return new ModelAndView(REDIRECT_HOME);
+    }
+    try {
+      servicioReceta.marcarComprada(socio, recetaId);
+      redirectAttributes.addFlashAttribute("mensaje", "Marcaste la receta como comprada.");
+    } catch (TurnoInvalido e) {
+      redirectAttributes.addFlashAttribute("error", e.getMessage());
+    }
+    return new ModelAndView("redirect:/mascotas/" + mascotaId);
   }
 
   @RequestMapping(path = "/mascotas/{id}/cambiar-plan", method = RequestMethod.POST)

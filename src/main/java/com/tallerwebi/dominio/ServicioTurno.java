@@ -13,6 +13,7 @@ public interface ServicioTurno {
   List<Turno> turnosDe(Veterinaria veterinaria);
   void cancelar(Socio socio, Long turnoId) throws TurnoInvalido;
   void cancelarPorVeterinaria(Veterinaria veterinaria, Long turnoId) throws TurnoInvalido;
+  void finalizar(Veterinaria veterinaria, Long turnoId) throws TurnoInvalido;
   void reprogramar(Socio socio, Long turnoId, LocalDate diaNuevo, LocalTime horaNueva)
     throws TurnoInvalido;
   void reprogramarPorVeterinaria(
