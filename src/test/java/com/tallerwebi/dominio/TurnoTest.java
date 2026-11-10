@@ -32,4 +32,13 @@ public class TurnoTest {
 
     assertThat(turno.isRecordatorioEnviado(), is(false));
   }
+
+  @Test
+  public void finalizarUnTurnoDeberiaDejarloFinalizado() {
+    Turno turno = new Turno();
+
+    turno.finalizar();
+
+    assertThat(turno.getEstado(), is(EstadoTurno.FINALIZADO));
+  }
 }

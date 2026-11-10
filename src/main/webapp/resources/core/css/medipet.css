@@ -354,3 +354,15 @@ h6 {
     padding-inline: 1.5rem;
   }
 }
+
+/* ---------- Botones de solo ícono (acciones de la fila de turnos) ---------- */
+
+.mp-btn-icono {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}

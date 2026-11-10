@@ -64,7 +64,8 @@ public class ServicioNotificacionMail implements ServicioNotificacion {
     );
   }
 
-  private void enviar(String emailDestino, String asunto, String html) {
+  // Sin "private" para que los tests la reemplacen y no manden mails de verdad.
+  void enviar(String emailDestino, String asunto, String html) {
     String usuario = requerido("MAIL_USER");
     String clave = requerido("MAIL_PASSWORD");
 
@@ -88,28 +89,38 @@ public class ServicioNotificacionMail implements ServicioNotificacion {
     );
 
     try {
-      MimeMessage mensaje = new MimeMessage(sesion);
-      mensaje.setFrom(new InternetAddress(usuario, "MediPet"));
-      mensaje.setRecipients(Message.RecipientType.TO, InternetAddress.parse(emailDestino));
-      mensaje.setSubject(asunto, "UTF-8");
-
-      MimeMultipart contenido = new MimeMultipart("related");
-
-      MimeBodyPart parteHtml = new MimeBodyPart();
-      parteHtml.setContent(html, "text/html; charset=UTF-8");
-      contenido.addBodyPart(parteHtml);
-
-      MimeBodyPart parteLogo = new MimeBodyPart();
-      parteLogo.setDataHandler(new DataHandler(new ByteArrayDataSource(leerLogo(), "image/png")));
-      parteLogo.setContentID("<logo>");
-      parteLogo.setDisposition(MimeBodyPart.INLINE);
-      contenido.addBodyPart(parteLogo);
-
-      mensaje.setContent(contenido);
-      Transport.send(mensaje);
+      Transport.send(armarMensaje(sesion, usuario, emailDestino, asunto, html));
     } catch (MessagingException | IOException e) {
       throw new IllegalStateException("No se pudo enviar el mail", e);
     }
+  }
+
+  MimeMessage armarMensaje(
+    Session sesion,
+    String remitente,
+    String emailDestino,
+    String asunto,
+    String html
+  ) throws MessagingException, IOException {
+    MimeMessage mensaje = new MimeMessage(sesion);
+    mensaje.setFrom(new InternetAddress(remitente, "MediPet"));
+    mensaje.setRecipients(Message.RecipientType.TO, InternetAddress.parse(emailDestino));
+    mensaje.setSubject(asunto, "UTF-8");
+
+    MimeMultipart contenido = new MimeMultipart("related");
+
+    MimeBodyPart parteHtml = new MimeBodyPart();
+    parteHtml.setContent(html, "text/html; charset=UTF-8");
+    contenido.addBodyPart(parteHtml);
+
+    MimeBodyPart parteLogo = new MimeBodyPart();
+    parteLogo.setDataHandler(new DataHandler(new ByteArrayDataSource(leerLogo(), "image/png")));
+    parteLogo.setContentID("<logo>");
+    parteLogo.setDisposition(MimeBodyPart.INLINE);
+    contenido.addBodyPart(parteLogo);
+
+    mensaje.setContent(contenido);
+    return mensaje;
   }
 
   private byte[] leerLogo() throws IOException {
@@ -192,7 +203,7 @@ public class ServicioNotificacionMail implements ServicioNotificacion {
       : texto.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
   }
 
-  private static String requerido(String nombre) {
+  static String requerido(String nombre) {
     String valor = System.getenv(nombre);
     if (valor == null || valor.isBlank()) {
       throw new IllegalStateException("Definí " + nombre + " en el entorno");

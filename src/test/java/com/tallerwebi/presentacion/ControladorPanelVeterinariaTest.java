@@ -6,7 +6,10 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.*;
 
+import com.tallerwebi.dominio.DatosReceta;
+import com.tallerwebi.dominio.RecetasDeConsulta;
 import com.tallerwebi.dominio.ServicioCobertura;
+import com.tallerwebi.dominio.ServicioReceta;
 import com.tallerwebi.dominio.ServicioTurno;
 import com.tallerwebi.dominio.ServicioVeterinaria;
 import com.tallerwebi.dominio.Turno;
@@ -21,6 +24,7 @@ import java.time.LocalTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributesModelMap;
 
@@ -32,6 +36,7 @@ public class ControladorPanelVeterinariaTest {
   private ServicioVeterinaria servicioVeterinaria;
   private ServicioCobertura servicioCobertura;
   private ServicioTurno servicioTurno;
+  private ServicioReceta servicioReceta;
   private ControladorPanelVeterinaria controlador;
   private HttpSession sesion;
   private Veterinaria veterinaria;
@@ -42,8 +47,14 @@ public class ControladorPanelVeterinariaTest {
     servicioVeterinaria = mock(ServicioVeterinaria.class);
     servicioCobertura = mock(ServicioCobertura.class);
     servicioTurno = mock(ServicioTurno.class);
+    servicioReceta = mock(ServicioReceta.class);
     controlador =
-      new ControladorPanelVeterinaria(servicioVeterinaria, servicioCobertura, servicioTurno);
+      new ControladorPanelVeterinaria(
+        servicioVeterinaria,
+        servicioCobertura,
+        servicioTurno,
+        servicioReceta
+      );
     sesion = mock(HttpSession.class);
     when(sesion.getAttribute(ControladorLogin.USUARIO_ID)).thenReturn(USUARIO_ID);
     when(sesion.getAttribute(ControladorLogin.ROL)).thenReturn(Usuario.ROL_VETERINARIA);
@@ -243,5 +254,163 @@ public class ControladorPanelVeterinariaTest {
       mav.getViewName(),
       equalTo("redirect:/veterinaria/turnos/" + TURNO_ID + "/reprogramar")
     );
+  }
+
+  @Test
+  public void formularioFinalizarDeberiaCargarElTurno() throws Exception {
+    Turno turno = new Turno();
+    when(servicioTurno.buscarTurnoDeVeterinaria(veterinaria, TURNO_ID)).thenReturn(turno);
+
+    ModelAndView mav = controlador.formularioFinalizar(
+      TURNO_ID,
+      sesion,
+      new RedirectAttributesModelMap()
+    );
+
+    assertThat(mav.getViewName(), equalTo("finalizar-turno"));
+    assertThat(mav.getModel().get("turno"), is(turno));
+  }
+
+  @Test
+  public void formularioFinalizarTurnoAjenoDeberiaVolverALista() throws Exception {
+    doThrow(new TurnoInvalido("No encontramos ese turno"))
+      .when(servicioTurno)
+      .buscarTurnoDeVeterinaria(veterinaria, TURNO_ID);
+    RedirectAttributesModelMap attrs = new RedirectAttributesModelMap();
+
+    ModelAndView mav = controlador.formularioFinalizar(TURNO_ID, sesion, attrs);
+
+    assertThat(mav.getViewName(), equalTo("redirect:/veterinaria/turnos"));
+    assertThat(attrs.getFlashAttributes().get("error"), equalTo("No encontramos ese turno"));
+  }
+
+  @Test
+  public void finalizarDeberiaFinalizarElTurnoYGuardarLasRecetas() throws Exception {
+    Turno turno = new Turno();
+    when(servicioTurno.buscarTurnoDeVeterinaria(veterinaria, TURNO_ID)).thenReturn(turno);
+    RedirectAttributesModelMap attrs = new RedirectAttributesModelMap();
+
+    ModelAndView mav = controlador.finalizar(
+      TURNO_ID,
+      List.of("Amoxicilina", ""),
+      List.of("1 cada 12hs", ""),
+      sesion,
+      attrs
+    );
+
+    verify(servicioTurno).finalizar(veterinaria, TURNO_ID);
+    ArgumentCaptor<List<DatosReceta>> captor = ArgumentCaptor.forClass(List.class);
+    verify(servicioReceta).registrar(eq(turno), captor.capture());
+    assertThat(captor.getValue().size(), is(2));
+    assertThat(captor.getValue().get(0).getMedicamento(), equalTo("Amoxicilina"));
+    assertThat(captor.getValue().get(0).getIndicaciones(), equalTo("1 cada 12hs"));
+    assertThat(mav.getViewName(), equalTo("redirect:/veterinaria/turnos"));
+    assertThat(attrs.getFlashAttributes().get("mensaje"), equalTo("Finalizaste la consulta."));
+  }
+
+  @Test
+  public void finalizarSinMedicamentosDeberiaFinalizarIgual() throws Exception {
+    Turno turno = new Turno();
+    when(servicioTurno.buscarTurnoDeVeterinaria(veterinaria, TURNO_ID)).thenReturn(turno);
+
+    controlador.finalizar(TURNO_ID, null, null, sesion, new RedirectAttributesModelMap());
+
+    verify(servicioTurno).finalizar(veterinaria, TURNO_ID);
+    verify(servicioReceta).registrar(eq(turno), eq(List.of()));
+  }
+
+  @Test
+  public void finalizarSinIndicacionesDeberiaGuardarElMedicamentoIgual() throws Exception {
+    Turno turno = new Turno();
+    when(servicioTurno.buscarTurnoDeVeterinaria(veterinaria, TURNO_ID)).thenReturn(turno);
+
+    controlador.finalizar(
+      TURNO_ID,
+      List.of("Amoxicilina"),
+      null,
+      sesion,
+      new RedirectAttributesModelMap()
+    );
+
+    ArgumentCaptor<List<DatosReceta>> captor = ArgumentCaptor.forClass(List.class);
+    verify(servicioReceta).registrar(eq(turno), captor.capture());
+    assertThat(captor.getValue().get(0).getIndicaciones(), equalTo(""));
+  }
+
+  @Test
+  public void finalizarTurnoInvalidoDeberiaMostrarElErrorYNoGuardarRecetas() throws Exception {
+    doThrow(new TurnoInvalido("Solo se pueden finalizar turnos confirmados"))
+      .when(servicioTurno)
+      .finalizar(veterinaria, TURNO_ID);
+    RedirectAttributesModelMap attrs = new RedirectAttributesModelMap();
+
+    controlador.finalizar(TURNO_ID, List.of("Amoxicilina"), List.of(""), sesion, attrs);
+
+    assertThat(
+      attrs.getFlashAttributes().get("error"),
+      equalTo("Solo se pueden finalizar turnos confirmados")
+    );
+    verifyNoInteractions(servicioReceta);
+  }
+
+  @Test
+  public void finalizarSinSesionDeVeterinariaDeberiaRedirigirAlHome() {
+    when(sesion.getAttribute(ControladorLogin.ROL)).thenReturn("SOCIO");
+
+    ModelAndView mav = controlador.finalizar(
+      TURNO_ID,
+      null,
+      null,
+      sesion,
+      new RedirectAttributesModelMap()
+    );
+
+    assertThat(mav.getViewName(), equalTo("redirect:/home"));
+    verifyNoInteractions(servicioReceta);
+  }
+
+  @Test
+  public void medicacionAnteriorDeberiaMostrarLasRecetasDeLaMascota() throws Exception {
+    Turno turno = new Turno();
+    List<RecetasDeConsulta> consultas = List.of(new RecetasDeConsulta(new Turno()));
+    when(servicioTurno.buscarTurnoDeVeterinaria(veterinaria, TURNO_ID)).thenReturn(turno);
+    when(servicioReceta.medicacionAnterior(veterinaria, turno)).thenReturn(consultas);
+
+    ModelAndView mav = controlador.medicacionAnterior(
+      TURNO_ID,
+      sesion,
+      new RedirectAttributesModelMap()
+    );
+
+    assertThat(mav.getViewName(), equalTo("medicacion-anterior"));
+    assertThat(mav.getModel().get("turno"), is(turno));
+    assertThat(mav.getModel().get("consultas"), is(consultas));
+  }
+
+  @Test
+  public void medicacionAnteriorDeUnTurnoAjenoDeberiaVolverALista() throws Exception {
+    doThrow(new TurnoInvalido("No encontramos ese turno"))
+      .when(servicioTurno)
+      .buscarTurnoDeVeterinaria(veterinaria, TURNO_ID);
+    RedirectAttributesModelMap attrs = new RedirectAttributesModelMap();
+
+    ModelAndView mav = controlador.medicacionAnterior(TURNO_ID, sesion, attrs);
+
+    assertThat(mav.getViewName(), equalTo("redirect:/veterinaria/turnos"));
+    assertThat(attrs.getFlashAttributes().get("error"), equalTo("No encontramos ese turno"));
+  }
+
+  @Test
+  public void medicacionAnteriorSinSerVeterinariaDeberiaRedirigirAlHome() {
+    when(sesion.getAttribute(ControladorLogin.ROL)).thenReturn("SOCIO");
+
+    ModelAndView mav = controlador.medicacionAnterior(
+      TURNO_ID,
+      sesion,
+      new RedirectAttributesModelMap()
+    );
+
+    assertThat(mav.getViewName(), equalTo("redirect:/home"));
+    verifyNoInteractions(servicioReceta);
   }
 }

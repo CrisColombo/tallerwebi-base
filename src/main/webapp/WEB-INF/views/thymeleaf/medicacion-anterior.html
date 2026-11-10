@@ -1,0 +1,41 @@
+<!DOCTYPE HTML>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/layout :: head('Medicación anterior')}"></head>
+
+<body>
+
+<header th:replace="~{fragments/layout :: encabezado('Medicación anterior', 'Lo que le recetaron antes a ' + ${turno.mascota.nombre} + '.')}"></header>
+
+<main role="main" class="mp-main mp-main--angosto">
+    <a th:href="@{/veterinaria/turnos}" class="btn btn-link ps-0 mb-3">&larr; Volver a turnos recibidos</a>
+
+    <section class="mp-card" id="medicacion">
+        <p class="text-muted" th:text="${turno.mascota.nombre} + ' · ' + ${turno.mascota.especie}">Luna · Perro</p>
+
+        <p th:if="${#lists.isEmpty(consultas)}" class="text-muted mb-0"
+           th:text="${turno.mascota.nombre} + ' no tiene medicación registrada.'">No tiene medicación registrada.</p>
+
+        <div class="border rounded-3 p-3 mb-3" th:each="c : ${consultas}">
+            <div class="d-flex flex-wrap justify-content-between gap-2">
+                <strong th:text="${c.turno.servicio.nombre} + ' · ' + ${#temporals.format(c.turno.fecha, 'dd/MM/yyyy')}">Consulta · 05/11/2026</strong>
+                <span class="small text-muted" th:text="${c.turno.veterinaria.nombre}">Veterinaria</span>
+            </div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item px-0" th:each="r : ${c.recetas}">
+                    <strong th:text="${r.medicamento}">Amoxicilina</strong>
+                    <div class="small text-muted" th:if="${!#strings.isEmpty(r.indicaciones)}"
+                         th:text="${r.indicaciones}">Cada 12 horas</div>
+                </li>
+            </ul>
+        </div>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/layout :: pie}"></footer>
+
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+
+</body>
+
+</html>

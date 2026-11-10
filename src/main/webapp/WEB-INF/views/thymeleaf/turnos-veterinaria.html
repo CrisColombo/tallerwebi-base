@@ -42,16 +42,34 @@
               <td th:text="${t.servicio.nombre}">Servicio</td>
               <td>
                 <span class="badge" th:text="${t.estado}"
-                  th:classappend="${t.estado.name() == 'CONFIRMADO'} ? 'text-bg-success' : 'text-bg-secondary'">CONFIRMADO</span>
+                  th:classappend="${t.estado.name() == 'CONFIRMADO'} ? 'text-bg-success' : (${t.estado.name() == 'FINALIZADO'} ? 'text-bg-info' : 'text-bg-secondary')">CONFIRMADO</span>
               </td>
               <td class="text-end">
-                <div th:if="${t.estaConfirmado()}" class="d-flex justify-content-end gap-2">
-                  <a class="btn btn-outline-primary btn-sm"
-                    th:href="@{/veterinaria/turnos/{id}/reprogramar(id=${t.id})}">Reprogramar</a>
-                  <form th:action="@{/veterinaria/turnos/{id}/cancelar(id=${t.id})}" method="POST"
-                    onsubmit="return confirm('¿Seguro que querés cancelar este turno?')">
-                    <button class="btn btn-outline-danger btn-sm" type="submit">Cancelar</button>
-                  </form>
+                <div class="d-flex flex-nowrap justify-content-end align-items-center gap-2">
+                  <a class="btn btn-outline-secondary btn-sm mp-btn-icono"
+                     th:unless="${t.estado.name() == 'CANCELADO'}"
+                     th:href="@{/veterinaria/turnos/{id}/medicacion(id=${t.id})}"
+                     title="Ver medicación" aria-label="Ver medicación">
+                    <i class="bi bi-capsule" aria-hidden="true"></i>
+                  </a>
+                  <th:block th:if="${t.estaConfirmado()}">
+                    <a class="btn btn-outline-primary btn-sm mp-btn-icono"
+                       th:href="@{/veterinaria/turnos/{id}/reprogramar(id=${t.id})}"
+                       title="Reprogramar" aria-label="Reprogramar">
+                      <i class="bi bi-calendar2-event" aria-hidden="true"></i>
+                    </a>
+                    <form th:action="@{/veterinaria/turnos/{id}/cancelar(id=${t.id})}" method="POST"
+                          onsubmit="return confirm('¿Seguro que querés cancelar este turno?')">
+                      <button class="btn btn-outline-danger btn-sm mp-btn-icono" type="submit"
+                              title="Cancelar turno" aria-label="Cancelar turno">
+                        <i class="bi bi-x-lg" aria-hidden="true"></i>
+                      </button>
+                    </form>
+                    <a class="btn btn-primary btn-sm"
+                       th:href="@{/veterinaria/turnos/{id}/finalizar(id=${t.id})}">
+                      <i class="bi bi-check2-circle" aria-hidden="true"></i> Finalizar consulta
+                    </a>
+                  </th:block>
                 </div>
               </td>
             </tr>
