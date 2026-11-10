@@ -64,7 +64,7 @@ public class Mascota {
 
   /* una mascota puede cubrir un servicio */
   public boolean tieneCubierto(Servicio servicio) {
-    return plan != null && plan.cubre(servicio);
+    return plan != null && suscripcionAlDia() && plan.cubre(servicio);
   }
 
   /************** GETTERS Y SETTERS **************/

@@ -1,5 +1,6 @@
 package com.tallerwebi.presentacion;
 
+import com.tallerwebi.dominio.Resena;
 import com.tallerwebi.dominio.ResumenResenas;
 import com.tallerwebi.dominio.ServicioCobertura;
 import com.tallerwebi.dominio.ServicioResena;
@@ -47,11 +48,14 @@ public class ControladorVeterinaria {
       return new ModelAndView("redirect:/veterinaria/inicio");
     }
     List<Veterinaria> veterinarias = servicioVeterinaria.listar(servicioId);
+
     Map<Long, ResumenResenas> resenas = servicioResena.resumenesPorVeterinarias(veterinarias);
+    Map<Long, List<Resena>> resenasDetalle = servicioResena.listarPorVeterinarias(veterinarias);
 
     Map<String, Object> modelo = new ModelMap();
     modelo.put("veterinarias", veterinarias);
     modelo.put("resenas", resenas);
+    modelo.put("resenasDetalle", resenasDetalle);
     modelo.put("servicios", servicioCobertura.listarServicios());
     modelo.put("servicioId", servicioId);
     return new ModelAndView("veterinarias", modelo);

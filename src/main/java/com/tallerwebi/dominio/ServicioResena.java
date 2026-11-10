@@ -13,4 +13,8 @@ public interface ServicioResena {
   ResumenResenas resumenDeVeterinaria(Long veterinariaId);
 
   Map<Long, ResumenResenas> resumenesPorVeterinarias(List<Veterinaria> lista);
+
+  List<Resena> listarPorVeterinaria(Long veterinariaId);
+
+  Map<Long, List<Resena>> listarPorVeterinarias(List<Veterinaria> lista);
 }

@@ -61,6 +61,20 @@ public class ServicioResenaImpl implements ServicioResena {
     return mapa;
   }
 
+  @Override
+  public List<Resena> listarPorVeterinaria(Long veterinariaId) {
+    return repositorioResena.listarPorVeterinaria(veterinariaId);
+  }
+
+  @Override
+  public Map<Long, List<Resena>> listarPorVeterinarias(List<Veterinaria> lista) {
+    Map<Long, List<Resena>> mapa = new HashMap<>();
+    for (Veterinaria veterinaria : lista) {
+      mapa.put(veterinaria.getId(), listarPorVeterinaria(veterinaria.getId()));
+    }
+    return mapa;
+  }
+
   private void exigirPuntuacion(int puntuacion) throws ResenaInvalida {
     if (puntuacion < PUNTUACION_MIN || puntuacion > PUNTUACION_MAX) {
       throw new ResenaInvalida("La puntuación debe ser entre 1 y 5");

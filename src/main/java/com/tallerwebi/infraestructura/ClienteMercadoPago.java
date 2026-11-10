@@ -24,6 +24,16 @@ public class ClienteMercadoPago {
   }
 
   public String crearPreferencia(String tituloItem, double precio, String referenciaExterna) {
+    PreferenceRequest preferencia = armarPreferenciaRequest(tituloItem, precio, referenciaExterna);
+    Preference preference = invocarCreacionPreferencia(preferencia);
+    return urlCheckoutDe(preference);
+  }
+
+  private PreferenceRequest armarPreferenciaRequest(
+    String tituloItem,
+    double precio,
+    String referenciaExterna
+  ) {
     String base = baseUrlObligatoria();
     PreferenceBackUrlsRequest backUrls = PreferenceBackUrlsRequest
       .builder()
@@ -31,7 +41,7 @@ public class ClienteMercadoPago {
       .failure(base + "/pago/error")
       .pending(base + "/pago/pendiente")
       .build();
-    PreferenceRequest preferencia = PreferenceRequest
+    return PreferenceRequest
       .builder()
       .items(
         List.of(
@@ -46,16 +56,13 @@ public class ClienteMercadoPago {
       )
       .backUrls(backUrls)
       .externalReference(referenciaExterna)
-      // .autoReturn("approved")
+      .autoReturn("all")
       .build();
-    PreferenceClient client = new PreferenceClient();
+  }
+
+  private Preference invocarCreacionPreferencia(PreferenceRequest preferencia) {
     try {
-      Preference preference = client.create(preferencia);
-      String url = preference.getSandboxInitPoint();
-      if (url == null || url.isBlank()) {
-        throw new IllegalStateException("Mercado Pago no devolvió sandbox_init_point");
-      }
-      return url;
+      return new PreferenceClient().create(preferencia);
     } catch (MPApiException e) {
       throw new IllegalStateException(
         "Error MP al crear preferencia: " + e.getApiResponse().getStatusCode(),
@@ -64,6 +71,17 @@ public class ClienteMercadoPago {
     } catch (MPException e) {
       throw new IllegalStateException("No se pudo crear la preferencia de pago", e);
     }
+  }
+
+  private static String urlCheckoutDe(Preference preference) {
+    String url = preference.getSandboxInitPoint();
+    if (url == null || url.isBlank()) {
+      url = preference.getInitPoint();
+    }
+    if (url == null || url.isBlank()) {
+      throw new IllegalStateException("Mercado Pago no devolvió init_point ni sandbox_init_point");
+    }
+    return url;
   }
 
   public boolean estaAprobado(String paymentId) {

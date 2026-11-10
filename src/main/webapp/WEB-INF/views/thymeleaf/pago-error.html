@@ -5,6 +5,13 @@
     <main class="mp-main mp-main--angosto">
       <h1>No se pudo cobrar</h1>
       <p th:text="${mensaje}">Error</p>
+      <p>La suscripción no se renovó.</p>
+      <a
+        th:if="${mascotaId != null}"
+        th:href="@{/mascotas/{id}(id=${mascotaId})}"
+        class="btn btn-primary"
+        >Volver a la mascota</a
+      >
       <a th:href="@{/home}" class="btn btn-secondary">Volver</a>
     </main>
   </body>

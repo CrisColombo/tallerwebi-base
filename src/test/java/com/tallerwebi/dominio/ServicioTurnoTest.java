@@ -49,17 +49,14 @@ public class ServicioTurnoTest {
     repositorioServicioMock = mock(RepositorioServicio.class);
     servicioNotificacionMock = mock(ServicioNotificacion.class);
     Clock reloj = Clock.fixed(
-      LocalDateTime.of(HOY, LocalTime.NOON).atZone(ZoneId.systemDefault()).toInstant(),
-      ZoneId.systemDefault()
-    );
-    servicioTurno =
-      new ServicioTurnoImpl(
+        LocalDateTime.of(HOY, LocalTime.NOON).atZone(ZoneId.systemDefault()).toInstant(),
+        ZoneId.systemDefault());
+    servicioTurno = new ServicioTurnoImpl(
         repositorioTurnoMock,
         repositorioVeterinariaMock,
         repositorioServicioMock,
         servicioNotificacionMock,
-        reloj
-      );
+        reloj);
 
     consulta = dadoUnServicio(1L, "Consulta clínica", 1);
     cirugia = dadoUnServicio(2L, "Cirugía", 2);
@@ -133,11 +130,38 @@ public class ServicioTurnoTest {
   }
 
   @Test
+  public void reservarSinPagoDeberiaFallar() {
+    firulais.setVenceSuscripcion(null);
+
+    TurnoInvalido error = assertThrows(
+        TurnoInvalido.class,
+        () -> servicioTurno.reservar(socio, dadaUnaSolicitud(1L, JUEVES, DIEZ)));
+
+    assertThat(
+        error.getMessage(),
+        equalTo("Tu mascota no tiene un plan vigente. Pagá la suscripción para sacar un turno."));
+    verify(repositorioTurnoMock, never()).guardar(any());
+  }
+
+  @Test
+  public void reservarConSuscripcionVencidaDeberiaFallar() {
+    firulais.setVenceSuscripcion(HOY.minusDays(1));
+
+    TurnoInvalido error = assertThrows(
+        TurnoInvalido.class,
+        () -> servicioTurno.reservar(socio, dadaUnaSolicitud(1L, JUEVES, DIEZ)));
+
+    assertThat(
+        error.getMessage(),
+        equalTo("Tu mascota no tiene un plan vigente. Pagá la suscripción para sacar un turno."));
+    verify(repositorioTurnoMock, never()).guardar(any());
+  }
+
+  @Test
   public void reservarUnServicioQueNoCubreElPlanDeberiaFallar() {
     TurnoInvalido error = assertThrows(
-      TurnoInvalido.class,
-      () -> servicioTurno.reservar(socio, dadaUnaSolicitud(2L, JUEVES, DIEZ))
-    );
+        TurnoInvalido.class,
+        () -> servicioTurno.reservar(socio, dadaUnaSolicitud(2L, JUEVES, DIEZ)));
 
     assertThat(error.getMessage(), equalTo("Cirugía no está incluido en el plan de Firulais"));
     verify(repositorioTurnoMock, never()).guardar(any());
@@ -149,9 +173,8 @@ public class ServicioTurnoTest {
     when(repositorioServicioMock.buscarPorId(3L)).thenReturn(vacunacion);
 
     assertThrows(
-      TurnoInvalido.class,
-      () -> servicioTurno.reservar(socio, dadaUnaSolicitud(3L, JUEVES, DIEZ))
-    );
+        TurnoInvalido.class,
+        () -> servicioTurno.reservar(socio, dadaUnaSolicitud(3L, JUEVES, DIEZ)));
   }
 
   @Test
@@ -159,9 +182,8 @@ public class ServicioTurnoTest {
     when(repositorioTurnoMock.horasOcupadas(10L, JUEVES)).thenReturn(List.of(DIEZ));
 
     TurnoInvalido error = assertThrows(
-      TurnoInvalido.class,
-      () -> servicioTurno.reservar(socio, dadaUnaSolicitud(1L, JUEVES, DIEZ))
-    );
+        TurnoInvalido.class,
+        () -> servicioTurno.reservar(socio, dadaUnaSolicitud(1L, JUEVES, DIEZ)));
 
     assertThat(error.getMessage(), equalTo("El horario elegido ya no está disponible"));
   }
@@ -169,17 +191,15 @@ public class ServicioTurnoTest {
   @Test
   public void reservarFueraDelHorarioDeAtencionDeberiaFallar() {
     assertThrows(
-      TurnoInvalido.class,
-      () -> servicioTurno.reservar(socio, dadaUnaSolicitud(1L, JUEVES, LocalTime.of(15, 0)))
-    );
+        TurnoInvalido.class,
+        () -> servicioTurno.reservar(socio, dadaUnaSolicitud(1L, JUEVES, LocalTime.of(15, 0))));
   }
 
   @Test
   public void reservarSinFechaDeberiaFallar() {
     assertThrows(
-      TurnoInvalido.class,
-      () -> servicioTurno.reservar(socio, dadaUnaSolicitud(1L, null, DIEZ))
-    );
+        TurnoInvalido.class,
+        () -> servicioTurno.reservar(socio, dadaUnaSolicitud(1L, null, DIEZ)));
   }
 
   @Test
@@ -243,9 +263,8 @@ public class ServicioTurnoTest {
     when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
 
     assertThrows(
-      TurnoInvalido.class,
-      () -> servicioTurno.reprogramarPorVeterinaria(veterinaria, 5L, JUEVES, DIEZ)
-    );
+        TurnoInvalido.class,
+        () -> servicioTurno.reprogramarPorVeterinaria(veterinaria, 5L, JUEVES, DIEZ));
   }
 
   @Test
@@ -286,8 +305,8 @@ public class ServicioTurnoTest {
   @Test
   public void siElMailFallaElTurnoIgualDeberiaQuedarReservado() throws TurnoInvalido {
     doThrow(new IllegalStateException("SMTP caído"))
-      .when(servicioNotificacionMock)
-      .enviarConfirmacionTurno(any(), anyString());
+        .when(servicioNotificacionMock)
+        .enviarConfirmacionTurno(any(), anyString());
 
     Turno turno = servicioTurno.reservar(socio, dadaUnaSolicitud(1L, JUEVES, DIEZ));
 
@@ -320,6 +339,7 @@ public class ServicioTurnoTest {
     mascota.setId(1L);
     mascota.setNombre("Firulais");
     mascota.setPlan(basico);
+    mascota.setVenceSuscripcion(LocalDate.now().plusMonths(1));
     return mascota;
   }
 
@@ -433,9 +453,8 @@ public class ServicioTurnoTest {
     when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
 
     TurnoInvalido error = assertThrows(
-      TurnoInvalido.class,
-      () -> servicioTurno.reprogramar(socio, 5L, viernes, nueveTreinta)
-    );
+        TurnoInvalido.class,
+        () -> servicioTurno.reprogramar(socio, 5L, viernes, nueveTreinta));
 
     assertThat(error.getMessage(), equalTo("Solo se pueden reprogramar turnos confirmados"));
     assertThat(turno.getFecha(), is(JUEVES));
@@ -455,9 +474,8 @@ public class ServicioTurnoTest {
     when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
 
     TurnoInvalido error = assertThrows(
-      TurnoInvalido.class,
-      () -> servicioTurno.reprogramar(socio, 5L, viernes, nueveTreinta)
-    );
+        TurnoInvalido.class,
+        () -> servicioTurno.reprogramar(socio, 5L, viernes, nueveTreinta));
 
     assertThat(error.getMessage(), equalTo("No encontramos ese turno"));
     assertThat(turno.getFecha(), is(JUEVES));
@@ -473,12 +491,11 @@ public class ServicioTurnoTest {
     when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
 
     when(repositorioTurnoMock.horasOcupadas(veterinaria.getId(), viernes))
-      .thenReturn(List.of(nueveTreinta));
+        .thenReturn(List.of(nueveTreinta));
 
     TurnoInvalido error = assertThrows(
-      TurnoInvalido.class,
-      () -> servicioTurno.reprogramar(socio, 5L, viernes, nueveTreinta)
-    );
+        TurnoInvalido.class,
+        () -> servicioTurno.reprogramar(socio, 5L, viernes, nueveTreinta));
 
     assertThat(error.getMessage(), equalTo("El horario elegido ya no está disponible"));
     assertThat(turno.getFecha(), is(JUEVES));
@@ -492,9 +509,8 @@ public class ServicioTurnoTest {
     when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
 
     TurnoInvalido error = assertThrows(
-      TurnoInvalido.class,
-      () -> servicioTurno.reprogramar(socio, 5L, null, DIEZ)
-    );
+        TurnoInvalido.class,
+        () -> servicioTurno.reprogramar(socio, 5L, null, DIEZ));
 
     assertThat(error.getMessage(), equalTo("Elegí fecha y horario"));
     assertThrows(TurnoInvalido.class, () -> servicioTurno.reprogramar(socio, 5L, JUEVES, null));
@@ -521,9 +537,8 @@ public class ServicioTurnoTest {
     when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
 
     TurnoInvalido error = assertThrows(
-      TurnoInvalido.class,
-      () -> servicioTurno.buscarTurnoDe(socio, 5L)
-    );
+        TurnoInvalido.class,
+        () -> servicioTurno.buscarTurnoDe(socio, 5L));
 
     assertThat(error.getMessage(), equalTo("No encontramos ese turno"));
   }

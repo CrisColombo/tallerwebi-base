@@ -1,0 +1,128 @@
+.resena-panel {
+  margin: 0.5rem 0 1rem;
+  padding: 1.25rem 1.35rem;
+  border-radius: 16px;
+  background: linear-gradient(
+    135deg,
+    rgba(20, 184, 166, 0.08) 0%,
+    rgba(255, 255, 255, 0.95) 55%
+  );
+  border: 1px solid var(--color-borde);
+  box-shadow: var(--sombra);
+}
+
+.resena-panel__titulo {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--color-azul-petroleo);
+  margin: 0 0 0.25rem;
+}
+
+.resena-panel__meta {
+  font-size: 0.85rem;
+  color: var(--color-texto-suave);
+  margin-bottom: 1rem;
+}
+
+.resena-panel__meta strong {
+  color: var(--color-texto);
+}
+
+.resena-estrellas {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+  gap: 0.1rem;
+  margin-bottom: 0.35rem;
+}
+
+.resena-estrellas input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.resena-estrellas label {
+  font-size: 2rem;
+  line-height: 1;
+  color: #d1d5db;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    transform 0.12s ease;
+  padding: 0 0.05rem;
+}
+
+.resena-estrellas label:hover,
+.resena-estrellas label:hover ~ label {
+  color: #f5b301;
+  transform: scale(1.08);
+}
+
+.resena-estrellas input:focus-visible + label {
+  outline: 2px solid var(--color-turquesa);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.resena-estrellas input:checked ~ label {
+  color: #f5b301;
+}
+
+.resena-panel__hint {
+  font-size: 0.8rem;
+  color: var(--color-texto-suave);
+  margin-bottom: 0.75rem;
+}
+
+.resena-panel__comentario {
+  border-radius: 12px;
+  border-color: var(--color-borde);
+  resize: vertical;
+  min-height: 5rem;
+}
+
+.resena-panel__comentario:focus {
+  border-color: var(--color-turquesa);
+  box-shadow: 0 0 0 0.2rem rgba(20, 184, 166, 0.2);
+}
+
+.resena-panel__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.resena-panel__footer .btn-primary {
+  background-color: var(--color-turquesa);
+  border-color: var(--color-turquesa-oscuro);
+  font-weight: 700;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+}
+
+.resena-panel__footer .btn-primary:hover {
+  background-color: var(--color-turquesa-oscuro);
+  border-color: var(--color-turquesa-oscuro);
+}
+
+.btn-resena-abrir {
+  font-weight: 700;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.badge-resena-hecha {
+  background: rgba(21, 94, 117, 0.12) !important;
+  color: var(--color-azul-petroleo) !important;
+  font-weight: 700;
+}
+
+.mis-turnos-table .resena-panel-row > td {
+  padding-top: 0;
+  border-top: none;
+  background: transparent !important;
+}

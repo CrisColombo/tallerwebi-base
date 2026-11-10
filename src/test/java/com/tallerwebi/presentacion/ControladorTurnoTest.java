@@ -36,7 +36,8 @@ public class ControladorTurnoTest {
         servicioSocioMock,
         servicioTurnoMock,
         mock(ServicioVeterinaria.class),
-        mock(ServicioCobertura.class)
+        mock(ServicioCobertura.class),
+        mock(ServicioResena.class)
       );
 
     sesionMock = mock(HttpSession.class);

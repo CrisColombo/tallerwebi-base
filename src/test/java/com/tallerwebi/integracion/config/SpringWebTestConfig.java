@@ -1,10 +1,18 @@
 package com.tallerwebi.integracion.config;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import com.tallerwebi.infraestructura.ClienteGemini;
+import com.tallerwebi.infraestructura.ClienteMercadoPago;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
@@ -81,5 +89,20 @@ public class SpringWebTestConfig implements WebMvcConfigurer {
   @Bean
   public PasswordEncoder passwordEncoder() {
     return new BCryptPasswordEncoder();
+  }
+
+  /** Evita cargar la API de Gemini en tests de integración (sin GEMINI_API_KEY). */
+  @Bean
+  @Primary
+  public ClienteGemini clienteGemini() {
+    ClienteGemini gemini = mock(ClienteGemini.class);
+    when(gemini.completar(any(), anyString())).thenReturn("Respuesta de prueba.");
+    return gemini;
+  }
+
+  @Bean
+  @Primary
+  public ClienteMercadoPago clienteMercadoPago() {
+    return mock(ClienteMercadoPago.class);
   }
 }

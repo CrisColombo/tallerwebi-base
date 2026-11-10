@@ -4,8 +4,14 @@
   <body>
     <main class="mp-main mp-main--angosto">
       <h1>¡Pago aprobado!</h1>
-      <p>Tu plan ya está activo.</p>
-      <a th:href="@{/home}" class="btn btn-primary">Ir al inicio</a>
+      <p>Tu plan ya está activo por un mes.</p>
+      <a
+        th:if="${mascotaId != null}"
+        th:href="@{/mascotas/{id}(id=${mascotaId})}"
+        class="btn btn-primary"
+        >Ver mascota</a
+      >
+      <a th:href="@{/home}" class="btn btn-secondary">Ir al inicio</a>
     </main>
   </body>
 </html>

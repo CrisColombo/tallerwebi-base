@@ -2,12 +2,11 @@ package com.tallerwebi.presentacion;
 
 import com.tallerwebi.dominio.ServicioResena;
 import com.tallerwebi.dominio.ServicioSocio;
-import com.tallerwebi.dominio.ServicioTurno;
 import com.tallerwebi.dominio.Socio;
-import com.tallerwebi.dominio.Turno;
 import com.tallerwebi.dominio.excepcion.ResenaInvalida;
-import com.tallerwebi.dominio.excepcion.TurnoInvalido;
 import jakarta.servlet.http.HttpSession;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,18 +18,14 @@ import org.springframework.web.servlet.ModelAndView;
 @Controller
 public class ControladorResena extends ControladorConSocio {
 
+  private static final String REDIRECT_TURNOS = "redirect:/turnos";
+
   private final ServicioResena servicioResena;
-  private final ServicioTurno servicioTurno;
 
   @Autowired
-  public ControladorResena(
-    ServicioSocio servicioSocio,
-    ServicioResena servicioResena,
-    ServicioTurno servicioTurno
-  ) {
+  public ControladorResena(ServicioSocio servicioSocio, ServicioResena servicioResena) {
     super(servicioSocio);
     this.servicioResena = servicioResena;
-    this.servicioTurno = servicioTurno;
   }
 
   @RequestMapping(path = "/turnos/{id}/resena", method = RequestMethod.POST)
@@ -48,28 +43,10 @@ public class ControladorResena extends ControladorConSocio {
 
     try {
       servicioResena.crearResena(socio, turnoId, puntuacion, comentario);
-      Long mascotaId = turnoIdMascota(socio, turnoId);
-
-      if (mascotaId != null) {
-        return new ModelAndView("redirect:/mascotas/" + mascotaId + "?resenaOk=1");
-      }
-      return new ModelAndView("redirect:/home");
+      return new ModelAndView(REDIRECT_TURNOS + "?resenaOk=1");
     } catch (ResenaInvalida e) {
-      Long mascotaId = turnoIdMascota(socio, turnoId);
-      String err = mascotaId != null ? "?errorResena=" + e.getMessage() : "";
-      if (mascotaId != null) {
-        return new ModelAndView("redirect:/mascotas/" + mascotaId + err);
-      }
-      return new ModelAndView("redirect:/home");
-    }
-  }
-
-  private Long turnoIdMascota(Socio socio, Long turnoId) {
-    try {
-      Turno turno = servicioTurno.buscarTurnoDe(socio, turnoId);
-      return turno.getMascota().getId();
-    } catch (TurnoInvalido e) {
-      return null;
+      String err = URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8);
+      return new ModelAndView(REDIRECT_TURNOS + "?errorResena=" + err);
     }
   }
 }

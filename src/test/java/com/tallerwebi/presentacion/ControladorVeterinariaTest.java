@@ -40,14 +40,17 @@ public class ControladorVeterinariaTest {
     when(servicioVeterinaria.listar(4L)).thenReturn(veterinarias);
     when(servicioCobertura.listarServicios()).thenReturn(List.of());
     when(servicioResena.resumenesPorVeterinarias(veterinarias)).thenReturn(Map.of());
+    when(servicioResena.listarPorVeterinarias(veterinarias)).thenReturn(Map.of());
 
     ModelAndView mav = controlador.listarVeterinarias(4L, sesion);
 
     assertThat(mav.getViewName(), equalTo("veterinarias"));
     assertThat(mav.getModel().get("veterinarias"), is(veterinarias));
     assertThat(mav.getModel().get("resenas"), is(Map.of()));
+    assertThat(mav.getModel().get("resenasDetalle"), is(Map.of()));
     verify(servicioVeterinaria).listar(4L);
     verify(servicioResena).resumenesPorVeterinarias(veterinarias);
+    verify(servicioResena).listarPorVeterinarias(veterinarias);
   }
 
   @Test

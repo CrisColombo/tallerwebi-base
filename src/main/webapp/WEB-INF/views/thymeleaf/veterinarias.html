@@ -78,6 +78,7 @@
           <li
             th:each="v : ${veterinarias}"
             class="veterinaria-card"
+            th:with="res=${resenas[v.id]}"
             th:attr="data-nombre=${v.nombre}, data-direccion=${v.direccion}"
           >
             <div class="veterinaria-card__header">
@@ -131,10 +132,7 @@
               >
             </div>
 
-            <div
-              class="veterinaria-card__opiniones"
-              th:with="res=${resenas[v.id]}"
-            >
+            <div class="veterinaria-card__opiniones">
               <p
                 th:if="${res == null or res.cantidad == 0}"
                 class="text-muted small mb-0"
@@ -162,18 +160,15 @@
                   · 12 reseñas
                 </span>
               </p>
-              <ul
-                class="list-unstyled small"
+              <button
                 th:if="${res != null and res.cantidad > 0}"
+                type="button"
+                class="btn btn-link btn-sm p-0 veterinaria-card__ver-opiniones"
+                data-bs-toggle="modal"
+                th:attr="data-bs-target=|#modal-resenas-${v.id}|,aria-controls=|modal-resenas-${v.id}|"
               >
-                <li th:each="r : ${res.ultimas}" class="mb-1">
-                  <span class="veterinaria-card__una-estrella" aria-hidden="true"
-                    >★</span
-                  >
-                  <span th:text="${r.puntuacion}">5</span>
-                  <span th:text="' — ' + ${r.comentario}"> — Comentario</span>
-                </li>
-              </ul>
+                Ver opiniones
+              </button>
             </div>
 
             <a
@@ -181,6 +176,75 @@
               th:href="@{/turnos/nuevo(veterinariaId=${v.id})}"
               >Sacar turno acá</a
             >
+
+            <div
+              class="modal fade"
+              th:id="'modal-resenas-' + ${v.id}"
+              tabindex="-1"
+              th:attr="aria-labelledby='modal-resenas-titulo-' + ${v.id}"
+              aria-hidden="true"
+            >
+              <div class="modal-dialog modal-dialog-scrollable">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h2
+                      class="modal-title fs-5"
+                      th:id="'modal-resenas-titulo-' + ${v.id}"
+                      th:text="'Opiniones de ' + ${v.nombre}"
+                    >
+                      Opiniones
+                    </h2>
+                    <button
+                      type="button"
+                      class="btn-close"
+                      data-bs-dismiss="modal"
+                      aria-label="Cerrar"
+                    ></button>
+                  </div>
+                  <div class="modal-body veterinaria-modal-opiniones">
+                    <p
+                      th:if="${res == null or res.cantidad == 0}"
+                      class="text-muted mb-0"
+                    >
+                      Sin reseñas.
+                    </p>
+                    <ul
+                      class="list-unstyled mb-0"
+                      th:if="${res != null and res.cantidad > 0}"
+                    >
+                      <li
+                        th:each="r : ${resenasDetalle[v.id]}"
+                        class="veterinaria-modal-opinion"
+                      >
+                        <span
+                          class="veterinaria-card__una-estrella"
+                          aria-hidden="true"
+                          >★</span
+                        >
+                        <strong th:text="${r.puntuacion}">5</strong>
+                        <span
+                          class="text-muted small"
+                          th:if="${r.creadoEn != null}"
+                          th:text="' · ' + ${#temporals.format(r.creadoEn, 'dd/MM/yyyy')}"
+                        ></span>
+                        <p class="veterinaria-modal-opinion__texto mb-0" th:text="${r.comentario}">
+                          Comentario
+                        </p>
+                      </li>
+                    </ul>
+                  </div>
+                  <div class="modal-footer">
+                    <button
+                      type="button"
+                      class="btn btn-secondary btn-sm"
+                      data-bs-dismiss="modal"
+                    >
+                      Cerrar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </li>
         </ul>
       </section>

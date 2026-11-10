@@ -11,20 +11,20 @@ import com.tallerwebi.dominio.HistorialTurnos;
 import com.tallerwebi.dominio.Mascota;
 import com.tallerwebi.dominio.Plan;
 import com.tallerwebi.dominio.ServicioMascota;
+import com.tallerwebi.dominio.ServicioPago;
 import com.tallerwebi.dominio.ServicioPlan;
-import com.tallerwebi.dominio.ServicioResena;
 import com.tallerwebi.dominio.ServicioSocio;
 import com.tallerwebi.dominio.ServicioTurno;
 import com.tallerwebi.dominio.Socio;
 import com.tallerwebi.dominio.Usuario;
 import com.tallerwebi.dominio.excepcion.DatosDeRegistroInvalidos;
+import com.tallerwebi.dominio.excepcion.PagoRechazado;
 import com.tallerwebi.dominio.excepcion.TurnoInvalido;
 import jakarta.servlet.http.HttpSession;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.servlet.ModelAndView;
-import org.springframework.web.servlet.mvc.support.RedirectAttributesModelMap;
 
 public class ControladorMascotaTest {
 
@@ -33,6 +33,7 @@ public class ControladorMascotaTest {
   private ServicioPlan servicioPlan;
   private ServicioMascota servicioMascota;
   private ServicioTurno servicioTurno;
+  private ServicioPago servicioPago;
   private HttpSession sesion;
   private Socio socio;
   private Mascota mascota;
@@ -44,14 +45,14 @@ public class ControladorMascotaTest {
     servicioPlan = mock(ServicioPlan.class);
     servicioMascota = mock(ServicioMascota.class);
     servicioTurno = mock(ServicioTurno.class);
-    ServicioResena servicioResena = mock(ServicioResena.class);
+    servicioPago = mock(ServicioPago.class);
     controladorMascota =
       new ControladorMascota(
         servicioSocio,
         servicioPlan,
         servicioMascota,
         servicioTurno,
-        servicioResena
+        servicioPago
       );
     sesion = mock(HttpSession.class);
     when(sesion.getAttribute(ControladorLogin.USUARIO_ID)).thenReturn(1L);
@@ -85,17 +86,27 @@ public class ControladorMascotaTest {
   }
 
   @Test
-  public void agregarMascotaDeberiaGuardarYVolverAlInicio() throws Exception {
-    RedirectAttributesModelMap redirectAttributes = new RedirectAttributesModelMap();
+  public void agregarMascotaDeberiaGuardarYRedirigirAMercadoPago() throws Exception {
+    mascota.setId(7L);
+    when(servicioMascota.agregarMascota(socio, mascota, 2L)).thenReturn(mascota);
+    when(servicioPago.iniciarPagoPlan(socio, 7L, 2L))
+      .thenReturn("https://sandbox.mercadopago.com/checkout");
 
-    ModelAndView mav = controladorMascota.agregarMascota(mascota, 2L, sesion, redirectAttributes);
+    ModelAndView mav = controladorMascota.agregarMascota(mascota, 2L, sesion);
 
     verify(servicioMascota).agregarMascota(socio, mascota, 2L);
-    assertThat(mav.getViewName(), equalTo("redirect:/home"));
-    assertThat(
-      redirectAttributes.getFlashAttributes().get("mensaje"),
-      equalTo("Agregaste una mascota.")
-    );
+    assertThat(mav.getViewName(), equalTo("redirect:https://sandbox.mercadopago.com/checkout"));
+  }
+
+  @Test
+  public void agregarMascotaSiMercadoPagoFallaDeberiaVolverAlPerfil() throws Exception {
+    mascota.setId(7L);
+    when(servicioMascota.agregarMascota(socio, mascota, 2L)).thenReturn(mascota);
+    when(servicioPago.iniciarPagoPlan(socio, 7L, 2L)).thenThrow(new PagoRechazado("Plan inválido"));
+
+    ModelAndView mav = controladorMascota.agregarMascota(mascota, 2L, sesion);
+
+    assertThat(mav.getViewName(), equalTo("redirect:/mascotas/7?errorPago=Plan+inv%C3%A1lido"));
   }
 
   @Test
@@ -104,12 +115,7 @@ public class ControladorMascotaTest {
       .when(servicioMascota)
       .agregarMascota(socio, mascota, 2L);
 
-    ModelAndView mav = controladorMascota.agregarMascota(
-      mascota,
-      2L,
-      sesion,
-      new RedirectAttributesModelMap()
-    );
+    ModelAndView mav = controladorMascota.agregarMascota(mascota, 2L, sesion);
 
     assertThat(mav.getViewName(), equalTo("nueva-mascota"));
     assertThat(mav.getModel().get("mascota"), is(mascota));

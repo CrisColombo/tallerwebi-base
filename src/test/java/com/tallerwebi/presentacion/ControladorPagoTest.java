@@ -5,6 +5,8 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.tallerwebi.dominio.ServicioPago;
@@ -42,5 +44,40 @@ public class ControladorPagoTest {
     ModelAndView mav = controlador.pagarPlan(1L, 2L, sesion);
 
     assertThat(mav.getViewName(), equalTo("redirect:https://sandbox.mercadopago.com/checkout"));
+  }
+
+  @Test
+  public void pagoExitoDeberiaConfirmarYMostrarLaVista() throws Exception {
+    ModelAndView mav = controlador.pagoExito("999", null, "mascota-1-plan-2", sesion);
+
+    verify(servicioPago).confirmarPago(any(), eq("999"), eq("mascota-1-plan-2"));
+    assertThat(mav.getViewName(), equalTo("pago-exito"));
+    assertThat(mav.getModel().get("mascotaId"), equalTo(1L));
+  }
+
+  @Test
+  public void pagoExitoDeberiaUsarCollectionIdSiNoHayPaymentId() throws Exception {
+    controlador.pagoExito("null", "888", "mascota-1-plan-2", sesion);
+
+    verify(servicioPago).confirmarPago(any(), eq("888"), eq("mascota-1-plan-2"));
+  }
+
+  @Test
+  public void pagoErrorDeberiaMostrarLaVistaSinConfirmar() throws Exception {
+    ModelAndView mav = controlador.pagoError("mascota-1-plan-2");
+
+    verify(servicioPago, never()).confirmarPago(any(), any(), any());
+    assertThat(mav.getViewName(), equalTo("pago-error"));
+    assertThat(mav.getModel().get("mascotaId"), equalTo(1L));
+    assertThat(mav.getModel().get("mensaje"), equalTo("No se pudo completar el pago."));
+  }
+
+  @Test
+  public void pagoPendienteNoDeberiaConfirmarElPago() throws Exception {
+    ModelAndView mav = controlador.pagoPendiente("mascota-1-plan-2");
+
+    verify(servicioPago, never()).confirmarPago(any(), any(), any());
+    assertThat(mav.getViewName(), equalTo("pago-pendiente"));
+    assertThat(mav.getModel().get("mascotaId"), equalTo(1L));
   }
 }

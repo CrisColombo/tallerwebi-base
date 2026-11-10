@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
   <head th:replace="~{fragments/layout :: head('Perfil de mascota')}"></head>
 
@@ -23,6 +23,15 @@
           th:text="${param.errorPago}"
         >
           No se pudo confirmar el pago.
+        </div>
+
+        <div
+          th:if="${!mascota.suscripcionAlDia()}"
+          class="alert alert-warning"
+          role="status"
+        >
+          Tu mascota no tiene un plan vigente. Pagá la suscripción para sacar un
+          turno.
         </div>
 
         <h2 class="mp-seccion-titulo">Plan de cobertura</h2>
@@ -97,43 +106,12 @@
         </dl>
 
         <form
-          th:action="@{/mascotas/{id}/cambiar-plan(id=${mascota.id})}"
-          method="POST"
-          class="mt-3"
-        >
-          <label for="planId" class="form-label">Cambiar plan</label>
-          <div class="d-flex flex-wrap gap-2">
-            <select
-              id="planId"
-              name="planId"
-              class="form-select"
-              style="max-width: 280px"
-            >
-              <option
-                th:each="p : ${planes}"
-                th:value="${p.id}"
-                th:text="${p.nombre}"
-                th:selected="${mascota.plan != null and mascota.plan.id == p.id}"
-              >
-                Plan
-              </option>
-            </select>
-            <button
-              type="submit"
-              class="btn btn-primary"
-              th:text="${mascota.plan != null} ? 'Guardar' : 'Asignar plan'"
-            >
-              Guardar
-            </button>
-          </div>
-        </form>
-        <form
           th:action="@{/mascotas/{id}/pagar-plan(id=${mascota.id})}"
           method="POST"
           class="mt-4"
         >
           <label for="planIdPago" class="form-label"
-            >Pagar o renovar un mes con Mercado Pago</label
+            >Pagar, renovar o cambiar de plan</label
           >
           <div class="d-flex flex-wrap gap-2">
             <select
@@ -148,11 +126,14 @@
                 th:value="${p.id}"
                 th:text="${p.nombre} + ' — $' + ${#numbers.formatDecimal(p.precio, 1, 'POINT', 0,
             'COMMA')}"
+                th:selected="${mascota.plan != null and mascota.plan.id == p.id}"
               ></option>
             </select>
             <button
+              id="btn-pagar-plan"
               type="submit"
               class="btn btn-success"
+              th:attr="data-plan-actual=${mascota.plan != null ? mascota.plan.id : ''}, data-al-dia=${mascota.suscripcionAlDia()}"
               th:text="${mascota.suscripcionAlDia()} ? 'Renovar un mes' : 'Pagar con Mercado Pago'"
             >
               Pagar con Mercado Pago
@@ -185,6 +166,7 @@
         >
           <h2 class="mp-seccion-titulo mb-0">Próximos turnos</h2>
           <a
+            th:if="${mascota.suscripcionAlDia()}"
             class="btn btn-primary btn-sm"
             th:href="@{/turnos/nuevo(mascotaId=${mascota.id})}"
             th:text="'Sacar turno para ' + ${mascota.nombre}"
@@ -228,18 +210,6 @@
       <section class="mp-card" id="turnos-pasados">
         <h2 class="mp-seccion-titulo">Turnos pasados</h2>
 
-        <div th:if="${param.resenaOk}" class="alert alert-success" role="status">
-          Gracias, guardamos tu reseña.
-        </div>
-        <div
-          th:if="${param.errorResena}"
-          class="alert alert-danger"
-          role="alert"
-          th:text="${param.errorResena}"
-        >
-          No se pudo guardar la reseña.
-        </div>
-
         <p
           th:if="${#lists.isEmpty(historial.pasados)}"
           class="text-muted mb-0"
@@ -250,9 +220,7 @@
 
         <ul class="list-group" th:unless="${#lists.isEmpty(historial.pasados)}">
           <li class="list-group-item" th:each="t : ${historial.pasados}">
-            <div
-              class="d-flex justify-content-between align-items-start gap-2"
-            >
+            <div class="d-flex justify-content-between align-items-start gap-2">
               <div>
                 <strong
                   th:text="${#temporals.format(t.fecha, 'dd/MM/yyyy')} + ' ' + ${t.hora}"
@@ -270,54 +238,6 @@
                 >FINALIZADO</span
               >
             </div>
-            <div
-              th:if="${t.estaFinalizado() and resenasPorTurno != null and !resenasPorTurno[t.id]}"
-              class="mt-3 pt-2 border-top"
-            >
-              <form
-                th:action="@{/turnos/{id}/resena(id=${t.id})}"
-                method="POST"
-              >
-                <label
-                  class="form-label small mb-1"
-                  th:attr="for='puntuacion-' + ${t.id}"
-                  >Calificar la atención (1 a 5 estrellas)</label
-                >
-                <select
-                  class="form-select form-select-sm mb-2"
-                  style="max-width: 200px"
-                  th:id="'puntuacion-' + ${t.id}"
-                  name="puntuacion"
-                  required
-                >
-                  <option value="5">5 — Excelente</option>
-                  <option value="4">4</option>
-                  <option value="3">3</option>
-                  <option value="2">2</option>
-                  <option value="1">1 — Mala</option>
-                </select>
-                <textarea
-                  class="form-control form-control-sm"
-                  name="comentario"
-                  rows="2"
-                  maxlength="500"
-                  required
-                  placeholder="Contá cómo fue la atención..."
-                ></textarea>
-                <button
-                  type="submit"
-                  class="btn btn-outline-primary btn-sm mt-2"
-                >
-                  Enviar reseña
-                </button>
-              </form>
-            </div>
-            <p
-              th:if="${t.estaFinalizado() and resenasPorTurno != null and resenasPorTurno[t.id]}"
-              class="small text-muted mb-0 mt-2 pt-2 border-top"
-            >
-              <span class="badge text-bg-secondary">Ya calificaste este turno</span>
-            </p>
           </li>
         </ul>
       </section>
@@ -326,5 +246,28 @@
     <footer th:replace="~{fragments/layout :: pie}"></footer>
 
     <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+    <script>
+      (function () {
+        var select = document.getElementById("planIdPago");
+        var boton = document.getElementById("btn-pagar-plan");
+        if (!select || !boton) return;
+        var actualizar = function () {
+          var alDia = boton.getAttribute("data-al-dia") === "true";
+          var actual = boton.getAttribute("data-plan-actual") || "";
+          var mismo = actual !== "" && select.value === String(actual);
+          if (alDia && mismo) {
+            boton.textContent = "Renovar un mes";
+            return;
+          }
+          if (actual !== "" && !mismo) {
+            boton.textContent = "Pagar y cambiar de plan";
+            return;
+          }
+          boton.textContent = "Pagar con Mercado Pago";
+        };
+        select.addEventListener("change", actualizar);
+        actualizar();
+      })();
+    </script>
   </body>
 </html>

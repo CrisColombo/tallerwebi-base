@@ -5,6 +5,8 @@ import com.tallerwebi.dominio.excepcion.TurnoInvalido;
 import jakarta.servlet.http.HttpSession;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -13,7 +15,6 @@ import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import org.springframework.web.servlet.mvc.support.RedirectAttributesModelMap;
 
 @Controller
 public class ControladorTurno extends ControladorConSocio {
@@ -26,23 +27,28 @@ public class ControladorTurno extends ControladorConSocio {
   private ServicioTurno servicioTurno;
   private ServicioVeterinaria servicioVeterinaria;
   private ServicioCobertura servicioCobertura;
+  private ServicioResena servicioResena;
 
   @Autowired
   public ControladorTurno(
     ServicioSocio servicioSocio,
     ServicioTurno servicioTurno,
     ServicioVeterinaria servicioVeterinaria,
-    ServicioCobertura servicioCobertura
+    ServicioCobertura servicioCobertura,
+    ServicioResena servicioResena
   ) {
     super(servicioSocio);
     this.servicioTurno = servicioTurno;
     this.servicioVeterinaria = servicioVeterinaria;
     this.servicioCobertura = servicioCobertura;
+    this.servicioResena = servicioResena;
   }
 
   /**
-   * El formulario se va completando por pasos: cada vez que el socio cambia la mascota, la
-   * veterinaria o la fecha, se vuelve a pedir esta página con lo elegido hasta el momento.
+   * El formulario se va completando por pasos: cada vez que el socio cambia la
+   * mascota, la
+   * veterinaria o la fecha, se vuelve a pedir esta página con lo elegido hasta el
+   * momento.
    */
   @RequestMapping(path = "/turnos/nuevo", method = RequestMethod.GET)
   public ModelAndView nuevoTurno(
@@ -82,7 +88,9 @@ public class ControladorTurno extends ControladorConSocio {
       return new ModelAndView(REDIRECT_HOME);
     }
     Map<String, Object> modelo = new ModelMap();
-    modelo.put("turnos", servicioTurno.turnosDe(socio));
+    List<Turno> turnos = servicioTurno.turnosDe(socio);
+    modelo.put("turnos", turnos);
+    modelo.put("resenasPorTurno", mapaResenasPorTurno(turnos));
     return new ModelAndView("mis-turnos", modelo);
   }
 
@@ -108,9 +116,11 @@ public class ControladorTurno extends ControladorConSocio {
   private ModelAndView vistaNuevoTurno(Socio socio, SolicitudTurno solicitud, String error) {
     Veterinaria veterinaria = servicioVeterinaria.buscarPorId(solicitud.getVeterinariaId());
 
+    Mascota elegida = socio.buscarMascota(solicitud.getMascotaId());
     Map<String, Object> modelo = new ModelMap();
     modelo.put("solicitud", solicitud);
     modelo.put("mascotas", socio.getMascotas());
+    modelo.put("sinPlanVigente", elegida != null && !elegida.suscripcionAlDia());
     modelo.put("veterinarias", servicioVeterinaria.listar(null));
     modelo.put(
       "servicios",
@@ -122,6 +132,16 @@ public class ControladorTurno extends ControladorConSocio {
       modelo.put(ERROR, error);
     }
     return new ModelAndView("nuevo-turno", modelo);
+  }
+
+  private Map<Long, Boolean> mapaResenasPorTurno(List<Turno> turnos) {
+    Map<Long, Boolean> mapa = new HashMap<>();
+    for (Turno turno : turnos) {
+      if (turno.estaFinalizado()) {
+        mapa.put(turno.getId(), servicioResena.socioYaReseno(turno.getId()));
+      }
+    }
+    return mapa;
   }
 
   @RequestMapping(path = "/turnos/{id}/reprogramar", method = RequestMethod.POST)

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+  <head th:replace="~{fragments/layout :: head('Pago pendiente')}"></head>
+  <body>
+    <main class="mp-main mp-main--angosto">
+      <h1>El pago está pendiente</h1>
+      <p>
+        Cuando Mercado Pago lo apruebe, el mes de la suscripción queda activo.
+        Mientras tanto no podés sacar turnos con este plan.
+      </p>
+      <a
+        th:if="${mascotaId != null}"
+        th:href="@{/mascotas/{id}(id=${mascotaId})}"
+        class="btn btn-primary"
+        >Volver a la mascota</a
+      >
+      <a th:href="@{/home}" class="btn btn-secondary">Ir al inicio</a>
+    </main>
+  </body>
+</html>
