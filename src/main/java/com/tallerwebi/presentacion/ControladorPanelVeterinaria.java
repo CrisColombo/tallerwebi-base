@@ -281,4 +281,20 @@ public class ControladorPanelVeterinaria extends ControladorConVeterinaria {
     }
     return new ModelAndView("panel-veterinaria", modelo);
   }
+
+  @RequestMapping(path = "/veterinaria/turnos/{id}/atendido", method = RequestMethod.POST)
+  public ModelAndView finalizarTurno(@PathVariable("id") Long turnoId, HttpSession sesion) {
+    Veterinaria veterinaria = veterinariaLogueada(sesion);
+
+    if (veterinaria == null) {
+      return new ModelAndView("redirect:/home");
+    }
+
+    try {
+      servicioTurno.finalizarTurno(veterinaria, turnoId);
+      return new ModelAndView("redirect:/veterinaria/turnos?mensaje= Turno marcado como atendido");
+    } catch (TurnoInvalido e) {
+      return new ModelAndView("redirect:/veterinaria/turnos?error=" + e.getMessage());
+    }
+  }
 }

@@ -33,6 +33,7 @@ public class ClienteGemini {
     Cuando recibas un bloque [CONTEXTO] con mascotas, usá solo esa lista para responder
     sobre mascotas del usuario. Si preguntan por mascotas y la lista está vacía, decílo.
     No inventes nombres ni especies.
+
     """;
 
   private final Client client;

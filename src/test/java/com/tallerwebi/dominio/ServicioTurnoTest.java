@@ -133,6 +133,38 @@ public class ServicioTurnoTest {
   }
 
   @Test
+  public void reservarSinPagoDeberiaFallar() {
+    firulais.setVenceSuscripcion(null);
+
+    TurnoInvalido error = assertThrows(
+      TurnoInvalido.class,
+      () -> servicioTurno.reservar(socio, dadaUnaSolicitud(1L, JUEVES, DIEZ))
+    );
+
+    assertThat(
+      error.getMessage(),
+      equalTo("Tu mascota no tiene un plan vigente. Pagá la suscripción para sacar un turno.")
+    );
+    verify(repositorioTurnoMock, never()).guardar(any());
+  }
+
+  @Test
+  public void reservarConSuscripcionVencidaDeberiaFallar() {
+    firulais.setVenceSuscripcion(HOY.minusDays(1));
+
+    TurnoInvalido error = assertThrows(
+      TurnoInvalido.class,
+      () -> servicioTurno.reservar(socio, dadaUnaSolicitud(1L, JUEVES, DIEZ))
+    );
+
+    assertThat(
+      error.getMessage(),
+      equalTo("Tu mascota no tiene un plan vigente. Pagá la suscripción para sacar un turno.")
+    );
+    verify(repositorioTurnoMock, never()).guardar(any());
+  }
+
+  @Test
   public void reservarUnServicioQueNoCubreElPlanDeberiaFallar() {
     TurnoInvalido error = assertThrows(
       TurnoInvalido.class,
@@ -578,6 +610,7 @@ public class ServicioTurnoTest {
     mascota.setId(1L);
     mascota.setNombre("Firulais");
     mascota.setPlan(basico);
+    mascota.setVenceSuscripcion(LocalDate.now().plusMonths(1));
     return mascota;
   }
 

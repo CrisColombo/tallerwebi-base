@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.*;
 
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -30,6 +31,7 @@ public class ServicioCoberturaTest {
 
     conPlanBasico = new Mascota();
     conPlanBasico.setPlan(dadoUnPlan(1));
+    conPlanBasico.setVenceSuscripcion(LocalDate.now().plusMonths(1));
   }
 
   @Test
@@ -45,6 +47,7 @@ public class ServicioCoberturaTest {
   public void conPlanPremiumDeberiaTenerTodoIncluido() {
     Mascota conPlanPremium = new Mascota();
     conPlanPremium.setPlan(dadoUnPlan(2));
+    conPlanPremium.setVenceSuscripcion(LocalDate.now().plusMonths(1));
 
     List<ItemCobertura> items = servicioCobertura.coberturaDe(
       conPlanPremium,

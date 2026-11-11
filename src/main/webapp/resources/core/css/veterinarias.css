@@ -154,6 +154,55 @@
   font-weight: 700;
 }
 
+.veterinaria-card__opiniones {
+  margin: 1rem 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-borde);
+}
+
+.veterinaria-card__una-estrella {
+  color: #f5b301;
+  font-size: 1.15rem;
+  margin-right: 0.2rem;
+}
+
+.veterinaria-card__puntaje strong {
+  font-size: 1rem;
+}
+
+.veterinaria-card__ver-opiniones {
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--color-azul-petroleo);
+}
+
+.veterinaria-card__ver-opiniones:hover {
+  text-decoration: underline;
+}
+
+.veterinaria-modal-opiniones {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.veterinaria-modal-opinion {
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.veterinaria-modal-opinion:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.veterinaria-modal-opinion__texto {
+  margin-top: 0.35rem;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
 .veterinarias-empty {
   text-align: center;
   padding: 2rem 1rem;

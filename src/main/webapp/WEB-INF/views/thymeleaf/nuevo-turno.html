@@ -9,6 +9,10 @@
 
   <main role="main" class="mp-main mp-main--angosto">
     <p th:if="${error != null}" id="error-turno" class="alert alert-danger" th:text="${error}"></p>
+    <p th:if="${sinPlanVigente}" id="aviso-sin-plan" class="alert alert-warning">
+      Tu mascota no tiene un plan vigente. Pagá la suscripción para sacar un turno.
+      <a th:href="@{/mascotas/{id}(id=${solicitud.mascotaId})}">Ir a pagar</a>
+    </p>
 
     <!-- Cada cambio en mascota, veterinaria o fecha recarga la página (GET) para mostrar
          los servicios y horarios que corresponden. El botón final envía por POST. -->
@@ -74,7 +78,7 @@
       </div>
 
       <button id="btn-confirmar-turno" class="btn btn-primary btn-lg" type="submit" th:formaction="@{/turnos}"
-        formmethod="post" th:disabled="${#lists.isEmpty(horarios)}">Confirmar turno</button>
+        formmethod="post" th:disabled="${#lists.isEmpty(horarios) or sinPlanVigente}">Confirmar turno</button>
       <a class="btn btn-link" th:href="@{/home}">Cancelar</a>
     </form>
   </main>

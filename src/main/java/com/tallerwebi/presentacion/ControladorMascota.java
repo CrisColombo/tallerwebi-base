@@ -2,8 +2,11 @@ package com.tallerwebi.presentacion;
 
 import com.tallerwebi.dominio.*;
 import com.tallerwebi.dominio.excepcion.DatosDeRegistroInvalidos;
+import com.tallerwebi.dominio.excepcion.PagoRechazado;
 import com.tallerwebi.dominio.excepcion.TurnoInvalido;
 import jakarta.servlet.http.HttpSession;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -22,8 +25,10 @@ public class ControladorMascota extends ControladorConSocio {
   private ServicioPlan servicioPlan;
   private ServicioMascota servicioMascota;
   private ServicioTurno servicioTurno;
+  private ServicioPago servicioPago;
   private ServicioReceta servicioReceta;
   private static final String REDIRECT_HOME = "redirect:/home";
+  private static final String REDIRECT_MASCOTA = "redirect:/mascotas/";
 
   @Autowired
   public ControladorMascota(
@@ -31,12 +36,14 @@ public class ControladorMascota extends ControladorConSocio {
     ServicioPlan servicioPlan,
     ServicioMascota servicioMascota,
     ServicioTurno servicioTurno,
+    ServicioPago servicioPago,
     ServicioReceta servicioReceta
   ) {
     super(servicioSocio);
     this.servicioPlan = servicioPlan;
     this.servicioMascota = servicioMascota;
     this.servicioTurno = servicioTurno;
+    this.servicioPago = servicioPago;
     this.servicioReceta = servicioReceta;
   }
 
@@ -53,20 +60,25 @@ public class ControladorMascota extends ControladorConSocio {
   public ModelAndView agregarMascota(
     @ModelAttribute("mascota") Mascota mascota,
     @RequestParam(value = "planId", required = false) Long planId,
-    HttpSession sesion,
-    RedirectAttributes redirectAttributes
+    HttpSession sesion
   ) {
     Socio socio = socioLogueado(sesion);
     if (socio == null) {
       return new ModelAndView(REDIRECT_HOME);
     }
+    Mascota creada;
     try {
-      servicioMascota.agregarMascota(socio, mascota, planId);
+      creada = servicioMascota.agregarMascota(socio, mascota, planId);
     } catch (DatosDeRegistroInvalidos e) {
       return vistaNuevaMascota(mascota, planId, e.getMessage());
     }
-    redirectAttributes.addFlashAttribute("mensaje", "Agregaste una mascota.");
-    return new ModelAndView(REDIRECT_HOME);
+    try {
+      String urlMercadoPago = servicioPago.iniciarPagoPlan(socio, creada.getId(), planId);
+      return new ModelAndView("redirect:" + urlMercadoPago);
+    } catch (PagoRechazado e) {
+      String mensaje = URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8);
+      return new ModelAndView(REDIRECT_MASCOTA + creada.getId() + "?errorPago=" + mensaje);
+    }
   }
 
   private ModelAndView vistaNuevaMascota(Mascota mascota, Long planId, String error) {
@@ -117,7 +129,7 @@ public class ControladorMascota extends ControladorConSocio {
     } catch (TurnoInvalido e) {
       redirectAttributes.addFlashAttribute("error", e.getMessage());
     }
-    return new ModelAndView("redirect:/mascotas/" + mascotaId);
+    return redirectMascota(mascotaId);
   }
 
   @RequestMapping(path = "/mascotas/{id}/cambiar-plan", method = RequestMethod.POST)
@@ -127,12 +139,16 @@ public class ControladorMascota extends ControladorConSocio {
     HttpSession sesion
   ) {
     servicioMascota.cambiarPlan(socioLogueado(sesion), id, planId);
-    return new ModelAndView("redirect:/mascotas/" + id);
+    return redirectMascota(id);
   }
 
   @RequestMapping(path = "/mascotas/{id}/baja", method = RequestMethod.POST)
   public ModelAndView darDeBaja(@PathVariable("id") Long id, HttpSession sesion) {
     servicioMascota.darDeBaja(socioLogueado(sesion), id);
-    return new ModelAndView("redirect:/mascotas/" + id);
+    return redirectMascota(id);
+  }
+
+  private ModelAndView redirectMascota(Long id) {
+    return new ModelAndView(REDIRECT_MASCOTA + id);
   }
 }

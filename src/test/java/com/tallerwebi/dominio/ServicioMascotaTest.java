@@ -55,6 +55,30 @@ public class ServicioMascotaTest {
   }
 
   @Test
+  public void buscarPorIdParaSocioDeberiaEncontrarLaMascotaAunqueNoEsteEnLaListaDelSocio() {
+    socio.setId(4L);
+    mascota.setId(8L);
+    mascota.setSocio(socio);
+    when(repositorioMascota.buscarPorId(8L)).thenReturn(mascota);
+    Socio desactualizado = new Socio();
+    desactualizado.setId(4L);
+
+    assertThat(servicioMascota.buscarPorIdParaSocio(desactualizado, 8L), is(mascota));
+  }
+
+  @Test
+  public void buscarPorIdParaSocioDeOtraPersonaDeberiaDevolverNull() {
+    socio.setId(4L);
+    mascota.setId(8L);
+    mascota.setSocio(socio);
+    when(repositorioMascota.buscarPorId(8L)).thenReturn(mascota);
+    Socio otro = new Socio();
+    otro.setId(9L);
+
+    assertThat(servicioMascota.buscarPorIdParaSocio(otro, 8L), equalTo(null));
+  }
+
+  @Test
   public void cambiarPlanDeberiaAsignarElPlan() {
     Socio socioLocal = new Socio();
     Mascota mascotaLocal = new Mascota();
@@ -85,15 +109,19 @@ public class ServicioMascotaTest {
   }
 
   @Test
-  public void agregarMascotaDeberiaAsociarlaAlSocioYAsignarleElPlan() throws Exception {
+  public void agregarMascotaDeberiaAsociarlaAlSocioYAsignarleElPlanSinActivarElMes()
+    throws Exception {
     mascota.setId(99L);
 
-    servicioMascota.agregarMascota(socio, mascota, 2L);
+    Mascota creada = servicioMascota.agregarMascota(socio, mascota, 2L);
 
+    assertThat(creada, is(mascota));
     assertThat(mascota.getId(), is((Long) null));
+    assertThat(mascota.getVenceSuscripcion(), equalTo(null));
     assertThat(socio.getMascotas().contains(mascota), is(true));
     assertThat(mascota.getSocio(), is(socio));
     assertThat(mascota.getPlan(), is(plan));
+    verify(repositorioMascota).guardar(mascota);
   }
 
   @Test

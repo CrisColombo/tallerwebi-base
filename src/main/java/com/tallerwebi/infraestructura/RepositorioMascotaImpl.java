@@ -19,4 +19,9 @@ public class RepositorioMascotaImpl extends RepositorioBase<Mascota> implements 
   public List<Mascota> listar() {
     return listarOrdenadoPor("nombre");
   }
+
+  @Override
+  public void guardar(Mascota mascota) {
+    sesion().persist(mascota);
+  }
 }

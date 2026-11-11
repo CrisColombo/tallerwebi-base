@@ -118,12 +118,21 @@ public class ServicioTurnoImpl implements ServicioTurno {
     if (veterinaria == null || servicio == null) {
       throw new TurnoInvalido("Elegí una veterinaria y un servicio");
     }
+    exigirPlanVigente(mascota);
     if (!veterinaria.ofrece(servicio)) {
       throw new TurnoInvalido(veterinaria.getNombre() + " no ofrece " + servicio.getNombre());
     }
     if (!mascota.tieneCubierto(servicio)) {
       throw new TurnoInvalido(
         servicio.getNombre() + " no está incluido en el plan de " + mascota.getNombre()
+      );
+    }
+  }
+
+  private void exigirPlanVigente(Mascota mascota) throws TurnoInvalido {
+    if (mascota.getPlan() == null || !mascota.suscripcionAlDia()) {
+      throw new TurnoInvalido(
+        "Tu mascota no tiene un plan vigente. Pagá la suscripción para sacar un turno."
       );
     }
   }
@@ -258,5 +267,15 @@ public class ServicioTurnoImpl implements ServicioTurno {
       throw new TurnoInvalido("No encontramos ese turno");
     }
     return turno;
+  }
+
+  @Override
+  public void finalizarTurno(Veterinaria veterinaria, Long turnoId) throws TurnoInvalido {
+    Turno turno = buscarTurnoDeVeterinaria(veterinaria, turnoId);
+
+    if (!turno.estaConfirmado()) {
+      throw new TurnoInvalido("Solo se pueden finalizar turnos confirmados");
+    }
+    turno.finalizar();
   }
 }
