@@ -10,12 +10,15 @@ import com.tallerwebi.dominio.Especie;
 import com.tallerwebi.dominio.HistorialTurnos;
 import com.tallerwebi.dominio.Mascota;
 import com.tallerwebi.dominio.Plan;
+import com.tallerwebi.dominio.RecetasDeConsulta;
 import com.tallerwebi.dominio.ServicioMascota;
 import com.tallerwebi.dominio.ServicioPago;
 import com.tallerwebi.dominio.ServicioPlan;
+import com.tallerwebi.dominio.ServicioReceta;
 import com.tallerwebi.dominio.ServicioSocio;
 import com.tallerwebi.dominio.ServicioTurno;
 import com.tallerwebi.dominio.Socio;
+import com.tallerwebi.dominio.Turno;
 import com.tallerwebi.dominio.Usuario;
 import com.tallerwebi.dominio.excepcion.DatosDeRegistroInvalidos;
 import com.tallerwebi.dominio.excepcion.PagoRechazado;
@@ -25,6 +28,7 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.mvc.support.RedirectAttributesModelMap;
 
 public class ControladorMascotaTest {
 
@@ -34,6 +38,7 @@ public class ControladorMascotaTest {
   private ServicioMascota servicioMascota;
   private ServicioTurno servicioTurno;
   private ServicioPago servicioPago;
+  private ServicioReceta servicioReceta;
   private HttpSession sesion;
   private Socio socio;
   private Mascota mascota;
@@ -46,13 +51,15 @@ public class ControladorMascotaTest {
     servicioMascota = mock(ServicioMascota.class);
     servicioTurno = mock(ServicioTurno.class);
     servicioPago = mock(ServicioPago.class);
+    servicioReceta = mock(ServicioReceta.class);
     controladorMascota =
       new ControladorMascota(
         servicioSocio,
         servicioPlan,
         servicioMascota,
         servicioTurno,
-        servicioPago
+        servicioPago,
+        servicioReceta
       );
     sesion = mock(HttpSession.class);
     when(sesion.getAttribute(ControladorLogin.USUARIO_ID)).thenReturn(1L);
@@ -151,5 +158,57 @@ public class ControladorMascotaTest {
     ModelAndView mav = controladorMascota.verPerfil(1L, sesion);
 
     assertThat(mav.getViewName(), equalTo("redirect:/home"));
+  }
+
+  @Test
+  public void verPerfilDeberiaMostrarLasRecetasDeLaMascota() throws TurnoInvalido {
+    List<RecetasDeConsulta> recetas = List.of(new RecetasDeConsulta(new Turno()));
+    when(servicioReceta.recetasDe(socio, 1L)).thenReturn(recetas);
+
+    ModelAndView mav = controladorMascota.verPerfil(1L, sesion);
+
+    assertThat(mav.getModel().get("recetas"), is(recetas));
+  }
+
+  @Test
+  public void marcarRecetaCompradaDeberiaVolverAlPerfilConMensaje() throws TurnoInvalido {
+    RedirectAttributesModelMap attrs = new RedirectAttributesModelMap();
+
+    ModelAndView mav = controladorMascota.marcarRecetaComprada(1L, 5L, sesion, attrs);
+
+    verify(servicioReceta).marcarComprada(socio, 5L);
+    assertThat(mav.getViewName(), equalTo("redirect:/mascotas/1"));
+    assertThat(
+      attrs.getFlashAttributes().get("mensaje"),
+      equalTo("Marcaste la receta como comprada.")
+    );
+  }
+
+  @Test
+  public void marcarRecetaInvalidaDeberiaVolverAlPerfilConElError() throws TurnoInvalido {
+    doThrow(new TurnoInvalido("No encontramos esa receta"))
+      .when(servicioReceta)
+      .marcarComprada(socio, 5L);
+    RedirectAttributesModelMap attrs = new RedirectAttributesModelMap();
+
+    ModelAndView mav = controladorMascota.marcarRecetaComprada(1L, 5L, sesion, attrs);
+
+    assertThat(mav.getViewName(), equalTo("redirect:/mascotas/1"));
+    assertThat(attrs.getFlashAttributes().get("error"), equalTo("No encontramos esa receta"));
+  }
+
+  @Test
+  public void marcarRecetaCompradaSinSerSocioDeberiaVolverAlHome() throws TurnoInvalido {
+    when(servicioSocio.buscarPorUsuario(1L)).thenReturn(null);
+
+    ModelAndView mav = controladorMascota.marcarRecetaComprada(
+      1L,
+      5L,
+      sesion,
+      new RedirectAttributesModelMap()
+    );
+
+    assertThat(mav.getViewName(), equalTo("redirect:/home"));
+    verifyNoInteractions(servicioReceta);
   }
 }

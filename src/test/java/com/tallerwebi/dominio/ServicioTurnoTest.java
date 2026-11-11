@@ -253,6 +253,38 @@ public class ServicioTurnoTest {
   }
 
   @Test
+  public void finalizarDeberiaDejarFinalizadoUnTurnoPropio() throws TurnoInvalido {
+    Turno turno = dadoUnTurnoDe(firulais);
+    turno.setVeterinaria(veterinaria);
+    when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
+
+    servicioTurno.finalizar(veterinaria, 5L);
+
+    assertThat(turno.getEstado(), is(EstadoTurno.FINALIZADO));
+  }
+
+  @Test
+  public void finalizarNoDeberiaPermitirFinalizarUnTurnoAjeno() {
+    Veterinaria otra = dadaUnaVeterinariaQueAtiendeDe9A12(consulta);
+    otra.setId(11L);
+    Turno turno = dadoUnTurnoDe(firulais);
+    turno.setVeterinaria(otra);
+    when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
+
+    assertThrows(TurnoInvalido.class, () -> servicioTurno.finalizar(veterinaria, 5L));
+  }
+
+  @Test
+  public void finalizarNoDeberiaPermitirFinalizarUnTurnoCancelado() {
+    Turno turno = dadoUnTurnoDe(firulais);
+    turno.setVeterinaria(veterinaria);
+    turno.cancelar();
+    when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
+
+    assertThrows(TurnoInvalido.class, () -> servicioTurno.finalizar(veterinaria, 5L));
+  }
+
+  @Test
   public void reprogramarPorVeterinariaDeberiaCambiarElTurnoPropio() throws TurnoInvalido {
     LocalDate viernes = JUEVES.plusDays(1);
     LocalTime nueveTreinta = LocalTime.of(9, 30);

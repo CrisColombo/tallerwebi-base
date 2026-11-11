@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 public class ControladorMascota extends ControladorConSocio {
@@ -25,8 +26,9 @@ public class ControladorMascota extends ControladorConSocio {
   private ServicioMascota servicioMascota;
   private ServicioTurno servicioTurno;
   private ServicioPago servicioPago;
-
+  private ServicioReceta servicioReceta;
   private static final String REDIRECT_HOME = "redirect:/home";
+  private static final String REDIRECT_MASCOTA = "redirect:/mascotas/";
 
   @Autowired
   public ControladorMascota(
@@ -34,13 +36,15 @@ public class ControladorMascota extends ControladorConSocio {
     ServicioPlan servicioPlan,
     ServicioMascota servicioMascota,
     ServicioTurno servicioTurno,
-    ServicioPago servicioPago
+    ServicioPago servicioPago,
+    ServicioReceta servicioReceta
   ) {
     super(servicioSocio);
     this.servicioPlan = servicioPlan;
     this.servicioMascota = servicioMascota;
     this.servicioTurno = servicioTurno;
     this.servicioPago = servicioPago;
+    this.servicioReceta = servicioReceta;
   }
 
   @RequestMapping(path = "/mascotas/nueva", method = RequestMethod.GET)
@@ -73,7 +77,7 @@ public class ControladorMascota extends ControladorConSocio {
       return new ModelAndView("redirect:" + urlMercadoPago);
     } catch (PagoRechazado e) {
       String mensaje = URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8);
-      return new ModelAndView("redirect:/mascotas/" + creada.getId() + "?errorPago=" + mensaje);
+      return new ModelAndView(REDIRECT_MASCOTA + creada.getId() + "?errorPago=" + mensaje);
     }
   }
 
@@ -100,17 +104,51 @@ public class ControladorMascota extends ControladorConSocio {
     modelo.put("mascota", mascota);
     modelo.put("planes", servicioPlan.listar());
     try {
-      HistorialTurnos historial = servicioTurno.historialDe(socio, id);
-      modelo.put("historial", historial);
+      modelo.put("historial", servicioTurno.historialDe(socio, id));
+      modelo.put("recetas", servicioReceta.recetasDe(socio, id));
     } catch (TurnoInvalido e) {
       return new ModelAndView("redirect:/home");
     }
     return new ModelAndView("mascota-perfil", modelo);
   }
 
+  @RequestMapping(path = "/mascotas/{id}/recetas/{recetaId}/comprada", method = RequestMethod.POST)
+  public ModelAndView marcarRecetaComprada(
+    @PathVariable("id") Long mascotaId,
+    @PathVariable("recetaId") Long recetaId,
+    HttpSession sesion,
+    RedirectAttributes redirectAttributes
+  ) {
+    Socio socio = socioLogueado(sesion);
+    if (socio == null) {
+      return new ModelAndView(REDIRECT_HOME);
+    }
+    try {
+      servicioReceta.marcarComprada(socio, recetaId);
+      redirectAttributes.addFlashAttribute("mensaje", "Marcaste la receta como comprada.");
+    } catch (TurnoInvalido e) {
+      redirectAttributes.addFlashAttribute("error", e.getMessage());
+    }
+    return redirectMascota(mascotaId);
+  }
+
+  @RequestMapping(path = "/mascotas/{id}/cambiar-plan", method = RequestMethod.POST)
+  public ModelAndView cambiarPlan(
+    @PathVariable("id") Long id,
+    @RequestParam("planId") Long planId,
+    HttpSession sesion
+  ) {
+    servicioMascota.cambiarPlan(socioLogueado(sesion), id, planId);
+    return redirectMascota(id);
+  }
+
   @RequestMapping(path = "/mascotas/{id}/baja", method = RequestMethod.POST)
   public ModelAndView darDeBaja(@PathVariable("id") Long id, HttpSession sesion) {
     servicioMascota.darDeBaja(socioLogueado(sesion), id);
-    return new ModelAndView("redirect:/mascotas/" + id);
+    return redirectMascota(id);
+  }
+
+  private ModelAndView redirectMascota(Long id) {
+    return new ModelAndView(REDIRECT_MASCOTA + id);
   }
 }

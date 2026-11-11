@@ -43,6 +43,10 @@ public class Turno {
     estado = EstadoTurno.CANCELADO;
   }
 
+  public void finalizar() {
+    estado = EstadoTurno.FINALIZADO;
+  }
+
   public boolean isRecordatorioEnviado() {
     return recordatorioEnviado;
   }
@@ -119,10 +123,6 @@ public class Turno {
 
   public void setServicio(Servicio servicio) {
     this.servicio = servicio;
-  }
-
-  public void finalizar() {
-    estado = EstadoTurno.FINALIZADO;
   }
 
   public boolean estaFinalizado() {

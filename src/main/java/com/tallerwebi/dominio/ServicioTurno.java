@@ -20,6 +20,8 @@ public interface ServicioTurno {
 
   void cancelarPorVeterinaria(Veterinaria veterinaria, Long turnoId) throws TurnoInvalido;
 
+  void finalizar(Veterinaria veterinaria, Long turnoId) throws TurnoInvalido;
+
   void reprogramar(Socio socio, Long turnoId, LocalDate diaNuevo, LocalTime horaNueva)
     throws TurnoInvalido;
 

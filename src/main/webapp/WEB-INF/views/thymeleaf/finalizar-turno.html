@@ -1,0 +1,59 @@
+<!DOCTYPE HTML>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/layout :: head('Finalizar consulta')}"></head>
+
+<body>
+
+<header th:replace="~{fragments/layout :: encabezado('Finalizar consulta', 'Dejá registrada la atención de esta mascota.')}"></header>
+
+<main role="main" class="mp-main mp-main--angosto">
+    <form id="form-finalizar" class="mp-card" th:action="@{/veterinaria/turnos/{id}/finalizar(id=${turno.id})}"
+          method="POST">
+
+        <dl class="mp-turno-actual">
+            <div>
+                <dt>Mascota</dt>
+                <dd th:text="${turno.mascota.nombre} + ' · ' + ${turno.mascota.especie}">Luna · Perro</dd>
+            </div>
+            <div>
+                <dt>Socio</dt>
+                <dd th:text="${turno.mascota.socio.nombre} + ' ' + ${turno.mascota.socio.apellido}">Lucía Gómez</dd>
+            </div>
+            <div>
+                <dt>Servicio</dt>
+                <dd th:text="${turno.servicio.nombre}">Consulta clínica</dd>
+            </div>
+            <div>
+                <dt>Turno</dt>
+                <dd th:text="${#temporals.format(turno.fecha, 'dd/MM/yyyy')} + ' · ' + ${turno.hora}">15/10/2026 · 10:00</dd>
+            </div>
+        </dl>
+
+        <div class="mb-3">
+            <span class="form-label d-block">Medicamentos recetados</span>
+            <div class="form-text mb-2">Completá solo los que haga falta. Las filas vacías se ignoran.</div>
+            <div class="row g-2 mb-2" th:each="i : ${#numbers.sequence(1, 3)}">
+                <div class="col-sm-5">
+                    <input name="medicamento" type="text" class="form-control" maxlength="120"
+                           th:placeholder="'Medicamento ' + ${i}" />
+                </div>
+                <div class="col-sm-7">
+                    <input name="indicaciones" type="text" class="form-control" maxlength="255"
+                           placeholder="Dosis e indicaciones (ej.: 1 comprimido cada 12 h, 7 días)" />
+                </div>
+            </div>
+        </div>
+
+        <button id="btn-finalizar" class="btn btn-primary btn-lg" type="submit">Finalizar consulta</button>
+        <a class="btn btn-link" th:href="@{/veterinaria/turnos}">Volver a turnos recibidos</a>
+    </form>
+</main>
+
+<footer th:replace="~{fragments/layout :: pie}"></footer>
+
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+
+</body>
+
+</html>
