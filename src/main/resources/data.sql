@@ -105,3 +105,12 @@ INSERT IGNORE INTO Mascota(id, nombre, especie, raza, fechaNacimiento, peso, soc
 
 (1, 'Firulais', 'PERRO', 'Mestizo', '2019-04-10', 18.5, 1, 1),
 (2, 'Michi', 'GATO', 'Siamés', '2021-08-22', 4.2, 1, 2);
+
+-- Demo del simulador de plan: consultas ya finalizadas de Firulais (plan Básico) con precio particular
+INSERT IGNORE INTO Turno(id, fecha, hora, estado, recordatorioEnviado, mascota_id, veterinaria_id, servicio_id, precioParticular) VALUES
+(101, '2026-01-12', '10:00:00', 'FINALIZADO', 1, 1, 1, 1, 8000),
+(102, '2026-03-03', '11:00:00', 'FINALIZADO', 1, 1, 1, 2, 12000),
+(103, '2026-04-20', '10:30:00', 'FINALIZADO', 1, 1, 1, 1, 8000),
+(104, '2026-06-15', '15:00:00', 'FINALIZADO', 1, 1, 1, 12, 25000),
+(105, '2026-09-02', '09:30:00', 'FINALIZADO', 1, 1, 1, 13, 400000),
+(106, '2026-10-28', '16:00:00', 'FINALIZADO', 1, 1, 1, 10, 18000);

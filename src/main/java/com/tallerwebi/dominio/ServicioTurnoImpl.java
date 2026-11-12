@@ -188,10 +188,10 @@ public class ServicioTurnoImpl implements ServicioTurno {
 
   @Override
   public void finalizar(
-          Veterinaria veterinaria,
-          Long turnoId,
-          String observaciones,
-          Double precioParticular
+    Veterinaria veterinaria,
+    Long turnoId,
+    String observaciones,
+    Double precioParticular
   ) throws TurnoInvalido {
     Turno turno = buscarTurnoDeVeterinaria(veterinaria, turnoId);
     if (!turno.estaConfirmado()) {
