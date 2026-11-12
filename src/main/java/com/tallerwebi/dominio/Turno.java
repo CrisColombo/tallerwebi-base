@@ -1,5 +1,6 @@
 package com.tallerwebi.dominio;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -24,6 +25,11 @@ public class Turno {
   private EstadoTurno estado = EstadoTurno.CONFIRMADO;
 
   private String observaciones;
+
+  // Lo que anota la veterinaria al finalizar la consulta (historial clínico).
+  @Column(length = 1000)
+  private String observacionesProfesional;
+
   private boolean recordatorioEnviado;
 
   @ManyToOne
@@ -45,6 +51,21 @@ public class Turno {
 
   public void finalizar() {
     estado = EstadoTurno.FINALIZADO;
+  }
+
+  /** Finaliza el turno y deja las observaciones del profesional (vacías = sin observaciones). */
+  public void finalizar(String observacionesDelProfesional) {
+    finalizar();
+    observacionesProfesional =
+      observacionesDelProfesional == null ? "" : observacionesDelProfesional.trim();
+  }
+
+  public String getObservacionesProfesional() {
+    return observacionesProfesional;
+  }
+
+  public void setObservacionesProfesional(String observacionesProfesional) {
+    this.observacionesProfesional = observacionesProfesional;
   }
 
   public boolean isRecordatorioEnviado() {

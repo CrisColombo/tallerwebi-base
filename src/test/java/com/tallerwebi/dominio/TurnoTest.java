@@ -41,4 +41,35 @@ public class TurnoTest {
 
     assertThat(turno.getEstado(), is(EstadoTurno.FINALIZADO));
   }
+
+  @Test
+  public void finalizarConObservacionesDeberiaGuardarlasSinEspaciosSobrantes() {
+    Turno turno = new Turno();
+
+    turno.finalizar("  Otitis leve, control en 7 días  ");
+
+    assertThat(turno.getEstado(), is(EstadoTurno.FINALIZADO));
+    assertThat(turno.getObservacionesProfesional(), is("Otitis leve, control en 7 días"));
+  }
+
+  @Test
+  public void finalizarConObservacionesEnBlancoDeberiaDejarlasVacias() {
+    Turno turno = new Turno();
+
+    turno.finalizar("   ");
+
+    assertThat(turno.getEstado(), is(EstadoTurno.FINALIZADO));
+    assertThat(turno.getObservacionesProfesional(), is(""));
+  }
+
+  @Test
+  public void lasObservacionesDelProfesionalNoDeberianPisarLaNotaDelSocio() {
+    Turno turno = new Turno();
+    turno.setObservaciones("Se rasca mucho la oreja");
+
+    turno.finalizar("Otitis leve");
+
+    assertThat(turno.getObservaciones(), is("Se rasca mucho la oreja"));
+    assertThat(turno.getObservacionesProfesional(), is("Otitis leve"));
+  }
 }

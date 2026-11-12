@@ -45,6 +45,13 @@
             </div>
         </div>
 
+        <div class="mb-3">
+            <label for="observaciones" class="form-label">Observaciones de la atención</label>
+            <textarea id="observaciones" name="observaciones" class="form-control" rows="4" maxlength="1000"
+                    placeholder="Diagnóstico, procedimiento realizado, recomendaciones (opcional)"></textarea>
+            <div class="form-text">Las ve el socio en el historial clínico de su mascota.</div>
+        </div>
+
         <button id="btn-finalizar" class="btn btn-primary btn-lg" type="submit">Finalizar consulta</button>
         <a class="btn btn-link" th:href="@{/veterinaria/turnos}">Volver a turnos recibidos</a>
     </form>
