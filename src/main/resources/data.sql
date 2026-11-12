@@ -97,7 +97,6 @@ INSERT IGNORE INTO Veterinaria_Servicio(veterinaria_id, servicio_id) VALUES
 
 -- Socio de demo: socio@medipet.com / 1234
 INSERT IGNORE INTO Usuario(id, email, password, rol, activo) VALUES(2, 'socio@medipet.com', '$2a$10$aOHU3dE4FX55d2HMTvXS2Oqrp1phohqusFMmt0R1j6X4w2eK.wzO.', 'SOCIO', true);
-UPDATE Usuario SET password = '$2a$10$aOHU3dE4FX55d2HMTvXS2Oqrp1phohqusFMmt0R1j6X4w2eK.wzO.' WHERE email = 'socio@medipet.com';
 -- Veterinaria de demo: vet@medipet.com / 1234, ligada a Clínica Veterinaria San Justo
 INSERT IGNORE INTO Usuario(id, email, password, rol, activo) VALUES(3, 'vet@medipet.com', '$2a$10$aOHU3dE4FX55d2HMTvXS2Oqrp1phohqusFMmt0R1j6X4w2eK.wzO.', 'VETERINARIA', true);
 UPDATE Veterinaria SET usuario_id = 3 WHERE id = 1 AND usuario_id IS NULL;
