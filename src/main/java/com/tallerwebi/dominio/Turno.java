@@ -35,6 +35,9 @@ public class Turno {
   @ManyToOne
   private Servicio servicio;
 
+  // Lo que habría costado la atención sin plan (lo carga la veterinaria al finalizar).
+  private Double precioParticular;
+
   public boolean estaConfirmado() {
     return estado == EstadoTurno.CONFIRMADO;
   }
@@ -127,5 +130,13 @@ public class Turno {
 
   public boolean estaFinalizado() {
     return estado == EstadoTurno.FINALIZADO;
+  }
+
+  public Double getPrecioParticular() {
+    return precioParticular;
+  }
+
+  public void setPrecioParticular(Double precioParticular) {
+    this.precioParticular = precioParticular;
   }
 }

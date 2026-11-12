@@ -37,4 +37,6 @@ public interface ServicioTurno {
   HistorialTurnos historialDe(Socio socio, Long mascotaId) throws TurnoInvalido;
 
   void finalizarTurno(Veterinaria veterinaria, Long turnoId) throws TurnoInvalido;
+
+  void finalizar(Veterinaria veterinaria, Long turnoId, String observaciones, Double precioParticular) throws TurnoInvalido;
 }

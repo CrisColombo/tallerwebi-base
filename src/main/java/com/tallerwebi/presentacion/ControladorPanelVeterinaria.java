@@ -235,6 +235,7 @@ public class ControladorPanelVeterinaria extends ControladorConVeterinaria {
     @PathVariable("id") Long turnoId,
     @RequestParam(value = "medicamento", required = false) List<String> medicamentos,
     @RequestParam(value = "indicaciones", required = false) List<String> indicaciones,
+    @RequestParam(value = "precioParticular", required = false) Double precioParticular,
     HttpSession sesion,
     RedirectAttributes redirectAttributes
   ) {
@@ -244,7 +245,7 @@ public class ControladorPanelVeterinaria extends ControladorConVeterinaria {
     }
     try {
       Turno turno = servicioTurno.buscarTurnoDeVeterinaria(veterinaria, turnoId);
-      servicioTurno.finalizar(veterinaria, turnoId);
+      servicioTurno.finalizar(veterinaria, turnoId, null, precioParticular);
       servicioReceta.registrar(turno, armarRecetas(medicamentos, indicaciones));
       redirectAttributes.addFlashAttribute(MENSAJE, "Finalizaste la consulta.");
     } catch (TurnoInvalido e) {
