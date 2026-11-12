@@ -421,4 +421,35 @@ public class ControladorPanelVeterinariaTest {
     assertThat(mav.getViewName(), equalTo("redirect:/home"));
     verifyNoInteractions(servicioReceta);
   }
+
+  @Test
+  public void historialClinicoDeberiaMostrarLasAtencionesDeLaMascota() throws Exception {
+    Turno turno = new Turno();
+    List<Turno> atenciones = List.of(new Turno());
+    when(servicioTurno.buscarTurnoDeVeterinaria(veterinaria, TURNO_ID)).thenReturn(turno);
+    when(servicioTurno.historialClinicoDe(veterinaria, TURNO_ID)).thenReturn(atenciones);
+
+    ModelAndView mav = controlador.historialClinico(
+      TURNO_ID,
+      sesion,
+      new RedirectAttributesModelMap()
+    );
+
+    assertThat(mav.getViewName(), equalTo("historial-mascota"));
+    assertThat(mav.getModel().get("turno"), is(turno));
+    assertThat(mav.getModel().get("atenciones"), is(atenciones));
+  }
+
+  @Test
+  public void historialClinicoDeTurnoAjenoDeberiaVolverALista() throws Exception {
+    doThrow(new TurnoInvalido("No encontramos ese turno"))
+      .when(servicioTurno)
+      .buscarTurnoDeVeterinaria(veterinaria, TURNO_ID);
+    RedirectAttributesModelMap attrs = new RedirectAttributesModelMap();
+
+    ModelAndView mav = controlador.historialClinico(TURNO_ID, sesion, attrs);
+
+    assertThat(mav.getViewName(), equalTo("redirect:/veterinaria/turnos"));
+    assertThat(attrs.getFlashAttributes().get("error"), equalTo("No encontramos ese turno"));
+  }
 }

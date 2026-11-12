@@ -284,4 +284,15 @@ public class ServicioTurnoImpl implements ServicioTurno {
     }
     turno.finalizar();
   }
+
+  @Override
+  public List<Turno> historialClinicoDe(Veterinaria veterinaria, Long turnoId)
+    throws TurnoInvalido {
+    Turno turno = buscarTurnoDeVeterinaria(veterinaria, turnoId);
+    return repositorioTurno
+      .listarPorMascota(turno.getMascota().getId())
+      .stream()
+      .filter(Turno::estaFinalizado)
+      .collect(Collectors.toList());
+  }
 }
