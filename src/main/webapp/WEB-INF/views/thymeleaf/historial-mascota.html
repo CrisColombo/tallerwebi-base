@@ -5,7 +5,7 @@
 
 <body>
 
-<header th:replace="~{fragments/layout :: encabezado('Historial clínico', 'Atenciones anteriores de ' + ${turno.mascota.nombre} + '.')}"></header>
+<header th:replace="~{fragments/layout :: encabezado('Historial clínico', 'Atenciones de ' + ${turno.mascota.nombre} + ' hasta esta consulta.')}"></header>
 
 <main role="main" class="mp-main mp-main--angosto">
     <a th:href="@{/veterinaria/turnos}" class="btn btn-link ps-0 mb-3">&larr; Volver a turnos recibidos</a>
@@ -13,8 +13,7 @@
     <section class="mp-card" id="historial-clinico">
         <p class="text-muted" th:text="${turno.mascota.nombre} + ' · ' + ${turno.mascota.especie}">Luna · Perro</p>
 
-        <p th:if="${#lists.isEmpty(atenciones)}" class="text-muted mb-0"
-           th:text="${turno.mascota.nombre} + ' todavía no tiene atenciones registradas.'">Todavía no tiene atenciones registradas.</p>
+        <p th:if="${#lists.isEmpty(atenciones)}" class="text-muted mb-0">No hay atenciones registradas hasta esta consulta.</p>
 
         <div class="border rounded-3 p-3 mb-3" th:each="t : ${atenciones}">
             <div class="d-flex flex-wrap justify-content-between gap-2">

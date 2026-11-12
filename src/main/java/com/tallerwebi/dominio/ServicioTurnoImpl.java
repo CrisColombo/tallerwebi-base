@@ -289,10 +289,12 @@ public class ServicioTurnoImpl implements ServicioTurno {
   public List<Turno> historialClinicoDe(Veterinaria veterinaria, Long turnoId)
     throws TurnoInvalido {
     Turno turno = buscarTurnoDeVeterinaria(veterinaria, turnoId);
+    LocalDateTime momentoDelTurno = momento(turno);
     return repositorioTurno
       .listarPorMascota(turno.getMascota().getId())
       .stream()
       .filter(Turno::estaFinalizado)
+      .filter(t -> !momento(t).isAfter(momentoDelTurno))
       .collect(Collectors.toList());
   }
 }
