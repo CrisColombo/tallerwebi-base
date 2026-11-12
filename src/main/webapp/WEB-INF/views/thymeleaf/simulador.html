@@ -1,0 +1,109 @@
+<!DOCTYPE HTML>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/layout :: head('Simulador de plan')}"></head>
+
+<body>
+
+<header th:replace="~{fragments/layout :: encabezado('Simulador de plan', 'Comparamos tu plan con el uso real de tu mascota.')}"></header>
+
+<main role="main" class="mp-main">
+
+    <section class="mp-card">
+        <h2 class="mp-seccion-titulo">
+            <span th:text="${simulacion.mascota.nombre}">Firulais</span>
+            <span th:if="${simulacion.planActual != null}"
+                  th:text="' · Plan actual: ' + ${simulacion.planActual.plan.nombre}"></span>
+        </h2>
+
+        <form method="GET" class="row g-2 align-items-center mb-3"
+              th:action="@{/mascotas/{id}/simulador(id=${simulacion.mascota.id})}">
+            <div class="col-auto"><label for="meses" class="col-form-label">Período</label></div>
+            <div class="col-auto">
+                <select id="meses" name="meses" class="form-select" onchange="this.form.submit()">
+                    <option th:each="valor : ${ {3, 6, 12, 24} }"
+                            th:value="${valor}"
+                            th:selected="${valor == simulacion.meses}"
+                            th:text="'Últimos ' + ${valor} + ' meses'">Últimos 12 meses</option>
+                </select>
+            </div>
+            <noscript><div class="col-auto"><button class="btn btn-primary" type="submit">Ver</button></div></noscript>
+        </form>
+
+        <div class="alert alert-info" th:if="${simulacion.sinAtenciones}">
+            Todavía no hay consultas finalizadas con precio en este período. Cuando la veterinaria
+            finalice una consulta y cargue su precio particular, la vas a ver acá.
+        </div>
+
+        <div th:unless="${simulacion.sinAtenciones}">
+            <div class="alert alert-success" th:if="${simulacion.planActualEsElMejor}">
+                <strong>Tu plan actual era el más conveniente</strong> para el uso que le diste en este período.
+            </div>
+            <div class="alert alert-success" th:unless="${simulacion.planActualEsElMejor}">
+                <strong th:text="'Con el ' + ${simulacion.masConveniente.plan.nombre} + ' habrías ahorrado $' + ${#numbers.formatDecimal(simulacion.ahorro, 1, 'POINT', 0, 'COMMA')}">
+                    Con el Plan Premium habrías ahorrado $83.000</strong>
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-6" th:each="r : ${simulacion.resultados}">
+                    <div class="border rounded p-3 h-100">
+                        <div class="fw-bold">
+                            <span th:text="${r.plan.nombre}">Plan Básico</span>
+                            <span class="badge bg-secondary" th:if="${r.actual}">Tu plan actual</span>
+                            <span class="badge bg-success" th:if="${r == simulacion.masConveniente}">Más conveniente</span>
+                        </div>
+                        <div class="text-muted small mt-2">
+                            Cuota: $<span th:text="${#numbers.formatDecimal(r.plan.precio, 1, 'POINT', 0, 'COMMA')}">20.000</span>
+                            × <span th:text="${simulacion.meses}">12</span> meses
+                            = $<span th:text="${#numbers.formatDecimal(r.cuotaTotal, 1, 'POINT', 0, 'COMMA')}">240.000</span><br>
+                            Atenciones no cubiertas: $<span th:text="${#numbers.formatDecimal(r.noCubierto, 1, 'POINT', 0, 'COMMA')}">0</span>
+                        </div>
+                        <div class="fs-4 fw-bold mt-2">
+                            $<span th:text="${#numbers.formatDecimal(r.total, 1, 'POINT', 0, 'COMMA')}">683.000</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 class="h6">Detalle de las atenciones</h3>
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Servicio</th>
+                        <th class="text-end">Precio particular</th>
+                        <th th:each="r : ${simulacion.resultados}" th:text="'Con ' + ${r.plan.nombre}">Con Plan</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="a : ${simulacion.atenciones}">
+                        <td th:text="${#temporals.format(a.fecha, 'dd/MM/yyyy')}">12/01/2026</td>
+                        <td th:text="${a.servicio}">Consulta clínica</td>
+                        <td class="text-end">$<span th:text="${#numbers.formatDecimal(a.precioParticular, 1, 'POINT', 0, 'COMMA')}">8.000</span></td>
+                        <td th:each="r : ${simulacion.resultados}">
+                            <span class="text-success fw-bold" th:if="${a.cubiertoPor(r.plan.id)}">Cubierto</span>
+                            <span class="text-danger fw-bold" th:unless="${a.cubiertoPor(r.plan.id)}"
+                                  th:text="'Pagás $' + ${#numbers.formatDecimal(a.precioParticular, 1, 'POINT', 0, 'COMMA')}">Pagás $8.000</span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="form-text">
+                Se calcula con el plan actual para todo el período, a partir de las consultas finalizadas
+                con precio particular cargado.
+            </div>
+        </div>
+
+        <a class="btn btn-link mt-3" th:href="@{/mascotas/{id}(id=${simulacion.mascota.id})}">Volver al perfil</a>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/layout :: pie}"></footer>
+
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+
+</body>
+
+</html>

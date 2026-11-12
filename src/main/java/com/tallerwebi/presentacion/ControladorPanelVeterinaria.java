@@ -259,6 +259,7 @@ public class ControladorPanelVeterinaria extends ControladorConVeterinaria {
     @RequestParam(value = "medicamento", required = false) List<String> medicamentos,
     @RequestParam(value = "indicaciones", required = false) List<String> indicaciones,
     @RequestParam(value = "observaciones", required = false) String observaciones,
+    @RequestParam(value = "precioParticular", required = false) Double precioParticular,
     HttpSession sesion,
     RedirectAttributes redirectAttributes
   ) {
@@ -268,7 +269,7 @@ public class ControladorPanelVeterinaria extends ControladorConVeterinaria {
     }
     try {
       Turno turno = servicioTurno.buscarTurnoDeVeterinaria(veterinaria, turnoId);
-      servicioTurno.finalizar(veterinaria, turnoId, observaciones);
+      servicioTurno.finalizar(veterinaria, turnoId, observaciones, precioParticular);
       servicioReceta.registrar(turno, armarRecetas(medicamentos, indicaciones));
       redirectAttributes.addFlashAttribute(MENSAJE, "Finalizaste la consulta.");
     } catch (TurnoInvalido e) {

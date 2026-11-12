@@ -41,4 +41,11 @@ public interface ServicioTurno {
   void finalizarTurno(Veterinaria veterinaria, Long turnoId) throws TurnoInvalido;
 
   List<Turno> historialClinicoDe(Veterinaria veterinaria, Long turnoId) throws TurnoInvalido;
+
+  void finalizar(
+    Veterinaria veterinaria,
+    Long turnoId,
+    String observaciones,
+    Double precioParticular
+  ) throws TurnoInvalido;
 }

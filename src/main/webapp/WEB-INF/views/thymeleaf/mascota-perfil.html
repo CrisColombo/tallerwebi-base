@@ -12,6 +12,62 @@
         >&larr; Volver al inicio</a
       >
 
+      <style>
+        .mp-simulador-banner {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          flex-wrap: wrap;
+          margin-bottom: 1rem;
+          padding: 18px 22px;
+          border-radius: 16px;
+          color: #fff;
+          text-decoration: none;
+          background: linear-gradient(120deg, #1a6a7a, #20c9a0);
+          box-shadow: 0 6px 18px rgba(26, 106, 122, 0.25);
+        }
+        .mp-simulador-banner:hover {
+          color: #fff;
+          filter: brightness(1.05);
+        }
+        .mp-simulador-banner__texto {
+          flex: 1;
+          min-width: 220px;
+        }
+        .mp-simulador-banner__texto strong {
+          display: block;
+          font-size: 1.15rem;
+        }
+        .mp-simulador-banner__nuevo,
+        .mp-simulador-banner__cta {
+          background: #fff;
+          color: #1a6a7a;
+          font-weight: 800;
+          border-radius: 20px;
+          padding: 3px 10px;
+          font-size: 0.75rem;
+        }
+        .mp-simulador-banner__cta {
+          border-radius: 12px;
+          padding: 9px 16px;
+          font-size: 0.9rem;
+        }
+      </style>
+
+      <a
+              class="mp-simulador-banner"
+              th:href="@{/mascotas/{id}/simulador(id=${mascota.id})}"
+      >
+        <span class="mp-simulador-banner__nuevo">NUEVO</span>
+        <span class="mp-simulador-banner__texto">
+          <strong>Simulador de plan</strong>
+          <small
+                  th:text="'Descubrí si otro plan te habría convenido más, según el uso real de ' + ${mascota.nombre} + '.'"
+          >Descubrí si otro plan te habría convenido más.</small
+          >
+        </span>
+        <span class="mp-simulador-banner__cta">Probar ahora</span>
+      </a>
       <section class="mp-card">
         <div th:if="${param.pagoOk}" class="alert alert-success" role="status">
           Pago registrado. La suscripción quedó al día por un mes.
@@ -115,6 +171,7 @@
             >
           </dd>
         </dl>
+
 
         <form
           th:action="@{/mascotas/{id}/pagar-plan(id=${mascota.id})}"

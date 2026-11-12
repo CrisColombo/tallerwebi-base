@@ -300,11 +300,12 @@ public class ControladorPanelVeterinariaTest {
       List.of("Amoxicilina", ""),
       List.of("1 cada 12hs", ""),
       "Otitis leve, control en 7 días",
+      null,
       sesion,
       attrs
     );
 
-    verify(servicioTurno).finalizar(veterinaria, TURNO_ID, "Otitis leve, control en 7 días");
+    verify(servicioTurno).finalizar(veterinaria, TURNO_ID, "Otitis leve, control en 7 días", null);
     ArgumentCaptor<List<DatosReceta>> captor = ArgumentCaptor.forClass(List.class);
     verify(servicioReceta).registrar(eq(turno), captor.capture());
     assertThat(captor.getValue().size(), is(2));
@@ -319,9 +320,17 @@ public class ControladorPanelVeterinariaTest {
     Turno turno = new Turno();
     when(servicioTurno.buscarTurnoDeVeterinaria(veterinaria, TURNO_ID)).thenReturn(turno);
 
-    controlador.finalizar(TURNO_ID, null, null, null, sesion, new RedirectAttributesModelMap());
+    controlador.finalizar(
+      TURNO_ID,
+      null,
+      null,
+      null,
+      null,
+      sesion,
+      new RedirectAttributesModelMap()
+    );
 
-    verify(servicioTurno).finalizar(veterinaria, TURNO_ID, null);
+    verify(servicioTurno).finalizar(veterinaria, TURNO_ID, null, null);
     verify(servicioReceta).registrar(eq(turno), eq(List.of()));
   }
 
@@ -333,6 +342,7 @@ public class ControladorPanelVeterinariaTest {
     controlador.finalizar(
       TURNO_ID,
       List.of("Amoxicilina"),
+      null,
       null,
       null,
       sesion,
@@ -348,10 +358,10 @@ public class ControladorPanelVeterinariaTest {
   public void finalizarTurnoInvalidoDeberiaMostrarElErrorYNoGuardarRecetas() throws Exception {
     doThrow(new TurnoInvalido("Solo se pueden finalizar turnos confirmados"))
       .when(servicioTurno)
-      .finalizar(veterinaria, TURNO_ID, null);
+      .finalizar(veterinaria, TURNO_ID, null, null);
     RedirectAttributesModelMap attrs = new RedirectAttributesModelMap();
 
-    controlador.finalizar(TURNO_ID, List.of("Amoxicilina"), List.of(""), null, sesion, attrs);
+    controlador.finalizar(TURNO_ID, List.of("Amoxicilina"), List.of(""), null, null, sesion, attrs);
 
     assertThat(
       attrs.getFlashAttributes().get("error"),
@@ -366,6 +376,7 @@ public class ControladorPanelVeterinariaTest {
 
     ModelAndView mav = controlador.finalizar(
       TURNO_ID,
+      null,
       null,
       null,
       null,

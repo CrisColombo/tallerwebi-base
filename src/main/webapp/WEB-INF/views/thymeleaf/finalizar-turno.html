@@ -52,6 +52,12 @@
             <div class="form-text">Las ve el socio en el historial clínico de su mascota.</div>
         </div>
 
+        <div class="mb-3">
+            <label for="precioParticular" class="form-label">Precio particular de la prestación</label>
+            <input id="precioParticular" name="precioParticular" type="number" min="0" step="0.01"
+                   class="form-control" placeholder="Ej.: 15000" />
+            <div class="form-text">Lo que habría costado esta atención sin plan. Se usa en el simulador de plan.</div>
+        </div>
         <button id="btn-finalizar" class="btn btn-primary btn-lg" type="submit">Finalizar consulta</button>
         <a class="btn btn-link" th:href="@{/veterinaria/turnos}">Volver a turnos recibidos</a>
     </form>
