@@ -179,11 +179,17 @@ public class ServicioTurnoImpl implements ServicioTurno {
 
   @Override
   public void finalizar(Veterinaria veterinaria, Long turnoId) throws TurnoInvalido {
+    finalizar(veterinaria, turnoId, null);
+  }
+
+  @Override
+  public void finalizar(Veterinaria veterinaria, Long turnoId, String observaciones)
+    throws TurnoInvalido {
     Turno turno = buscarTurnoDeVeterinaria(veterinaria, turnoId);
     if (!turno.estaConfirmado()) {
       throw new TurnoInvalido("Solo se pueden finalizar turnos confirmados");
     }
-    turno.finalizar();
+    turno.finalizar(observaciones);
   }
 
   @Override
@@ -292,5 +298,18 @@ public class ServicioTurnoImpl implements ServicioTurno {
       throw new TurnoInvalido("Solo se pueden finalizar turnos confirmados");
     }
     turno.finalizar();
+  }
+
+  @Override
+  public List<Turno> historialClinicoDe(Veterinaria veterinaria, Long turnoId)
+    throws TurnoInvalido {
+    Turno turno = buscarTurnoDeVeterinaria(veterinaria, turnoId);
+    LocalDateTime momentoDelTurno = momento(turno);
+    return repositorioTurno
+      .listarPorMascota(turno.getMascota().getId())
+      .stream()
+      .filter(Turno::estaFinalizado)
+      .filter(t -> !momento(t).isAfter(momentoDelTurno))
+      .collect(Collectors.toList());
   }
 }

@@ -1,0 +1,37 @@
+<!DOCTYPE HTML>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/layout :: head('Historial clínico')}"></head>
+
+<body>
+
+<header th:replace="~{fragments/layout :: encabezado('Historial clínico', 'Atenciones de ' + ${turno.mascota.nombre} + ' hasta esta consulta.')}"></header>
+
+<main role="main" class="mp-main mp-main--angosto">
+    <a th:href="@{/veterinaria/turnos}" class="btn btn-link ps-0 mb-3">&larr; Volver a turnos recibidos</a>
+
+    <section class="mp-card" id="historial-clinico">
+        <p class="text-muted" th:text="${turno.mascota.nombre} + ' · ' + ${turno.mascota.especie}">Luna · Perro</p>
+
+        <p th:if="${#lists.isEmpty(atenciones)}" class="text-muted mb-0">No hay atenciones registradas hasta esta consulta.</p>
+
+        <div class="border rounded-3 p-3 mb-3" th:each="t : ${atenciones}">
+            <div class="d-flex flex-wrap justify-content-between gap-2">
+                <strong th:text="${t.servicio.nombre}">Consulta clínica</strong>
+                <span class="small text-muted" th:text="${#temporals.format(t.fecha, 'dd/MM/yyyy')}">05/11/2026</span>
+            </div>
+            <div class="small text-muted" th:text="${t.veterinaria.nombre}">Veterinaria</div>
+            <p class="mb-0 mt-2" th:if="${!#strings.isEmpty(t.observacionesProfesional)}"
+               th:text="${t.observacionesProfesional}">Observaciones del profesional.</p>
+            <p class="mb-0 mt-2 text-muted fst-italic" th:if="${#strings.isEmpty(t.observacionesProfesional)}">Sin observaciones.</p>
+        </div>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/layout :: pie}"></footer>
+
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+
+</body>
+
+</html>

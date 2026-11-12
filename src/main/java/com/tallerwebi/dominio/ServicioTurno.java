@@ -22,6 +22,8 @@ public interface ServicioTurno {
 
   void finalizar(Veterinaria veterinaria, Long turnoId) throws TurnoInvalido;
 
+  void finalizar(Veterinaria veterinaria, Long turnoId, String observaciones) throws TurnoInvalido;
+
   void reprogramar(Socio socio, Long turnoId, LocalDate diaNuevo, LocalTime horaNueva)
     throws TurnoInvalido;
 
@@ -37,6 +39,8 @@ public interface ServicioTurno {
   HistorialTurnos historialDe(Socio socio, Long mascotaId) throws TurnoInvalido;
 
   void finalizarTurno(Veterinaria veterinaria, Long turnoId) throws TurnoInvalido;
+
+  List<Turno> historialClinicoDe(Veterinaria veterinaria, Long turnoId) throws TurnoInvalido;
 
   void finalizar(
     Veterinaria veterinaria,

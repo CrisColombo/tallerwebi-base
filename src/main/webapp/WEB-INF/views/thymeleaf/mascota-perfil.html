@@ -286,8 +286,50 @@
         </div>
       </section>
 
-      <!-- Historial de turnos: "historial" lo arma ServicioTurno.historialDe
-         (próximos = confirmados a futuro; pasados = el resto) -->
+      <!-- Historial de turnos -->
+      <section class="mp-card" id="historial-clinico">
+        <h2 class="mp-seccion-titulo">Historial clínico</h2>
+
+        <p
+          th:if="${#lists.isEmpty(historial.atenciones)}"
+          class="text-muted mb-0"
+          th:text="${mascota.nombre} + ' todavía no tiene atenciones registradas.'"
+        >
+          Todavía no tiene atenciones registradas.
+        </p>
+
+        <div
+          class="border rounded-3 p-3 mb-3"
+          th:each="t : ${historial.atenciones}"
+        >
+          <div class="d-flex flex-wrap justify-content-between gap-2">
+            <strong th:text="${t.servicio.nombre}">Consulta clínica</strong>
+            <span
+              class="small text-muted"
+              th:text="${#temporals.format(t.fecha, 'dd/MM/yyyy')}"
+              >05/11/2026</span
+            >
+          </div>
+          <div class="small text-muted" th:text="${t.veterinaria.nombre}">
+            Veterinaria
+          </div>
+          <p
+            class="mb-0 mt-2"
+            th:if="${!#strings.isEmpty(t.observacionesProfesional)}"
+            th:text="${t.observacionesProfesional}"
+          >
+            Observaciones del profesional.
+          </p>
+          <p
+            class="mb-0 mt-2 text-muted fst-italic"
+            th:if="${#strings.isEmpty(t.observacionesProfesional)}"
+          >
+            Sin observaciones.
+          </p>
+        </div>
+      </section>
+      
+
       <section class="mp-card" id="turnos-proximos">
         <div
           class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3"

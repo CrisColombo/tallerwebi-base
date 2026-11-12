@@ -37,6 +37,7 @@ public class ControladorPanelVeterinaria extends ControladorConVeterinaria {
   private static final String REDIRECT_HOME = "redirect:/home";
   private static final String ERROR = "error";
   private static final String MENSAJE = "mensaje";
+  private static final String TURNO = "turno";
 
   private final ServicioVeterinaria servicioVeterinaria;
   private final ServicioCobertura servicioCobertura;
@@ -150,7 +151,7 @@ public class ControladorPanelVeterinaria extends ControladorConVeterinaria {
     try {
       Turno turno = servicioTurno.buscarTurnoDeVeterinaria(veterinaria, turnoId);
       Map<String, Object> modelo = new ModelMap();
-      modelo.put("turno", turno);
+      modelo.put(TURNO, turno);
       modelo.put("fecha", fecha);
       modelo.put("horarios", servicioTurno.horariosDisponibles(veterinaria, fecha));
       modelo.put("hoy", LocalDate.now());
@@ -200,7 +201,7 @@ public class ControladorPanelVeterinaria extends ControladorConVeterinaria {
     try {
       Turno turno = servicioTurno.buscarTurnoDeVeterinaria(veterinaria, turnoId);
       Map<String, Object> modelo = new ModelMap();
-      modelo.put("turno", turno);
+      modelo.put(TURNO, turno);
       return new ModelAndView("finalizar-turno", modelo);
     } catch (TurnoInvalido e) {
       redirectAttributes.addFlashAttribute(ERROR, e.getMessage());
@@ -221,9 +222,31 @@ public class ControladorPanelVeterinaria extends ControladorConVeterinaria {
     try {
       Turno turno = servicioTurno.buscarTurnoDeVeterinaria(veterinaria, turnoId);
       Map<String, Object> modelo = new ModelMap();
-      modelo.put("turno", turno);
+      modelo.put(TURNO, turno);
       modelo.put("consultas", servicioReceta.medicacionAnterior(veterinaria, turno));
       return new ModelAndView("medicacion-anterior", modelo);
+    } catch (TurnoInvalido e) {
+      redirectAttributes.addFlashAttribute(ERROR, e.getMessage());
+      return new ModelAndView(REDIRECT_TURNOS);
+    }
+  }
+
+  @RequestMapping(path = "/veterinaria/turnos/{id}/historial", method = RequestMethod.GET)
+  public ModelAndView historialClinico(
+    @PathVariable("id") Long turnoId,
+    HttpSession sesion,
+    RedirectAttributes redirectAttributes
+  ) {
+    Veterinaria veterinaria = veterinariaLogueada(sesion);
+    if (veterinaria == null) {
+      return new ModelAndView(REDIRECT_HOME);
+    }
+    try {
+      Turno turno = servicioTurno.buscarTurnoDeVeterinaria(veterinaria, turnoId);
+      Map<String, Object> modelo = new ModelMap();
+      modelo.put(TURNO, turno);
+      modelo.put("atenciones", servicioTurno.historialClinicoDe(veterinaria, turnoId));
+      return new ModelAndView("historial-mascota", modelo);
     } catch (TurnoInvalido e) {
       redirectAttributes.addFlashAttribute(ERROR, e.getMessage());
       return new ModelAndView(REDIRECT_TURNOS);
@@ -235,6 +258,7 @@ public class ControladorPanelVeterinaria extends ControladorConVeterinaria {
     @PathVariable("id") Long turnoId,
     @RequestParam(value = "medicamento", required = false) List<String> medicamentos,
     @RequestParam(value = "indicaciones", required = false) List<String> indicaciones,
+    @RequestParam(value = "observaciones", required = false) String observaciones,
     @RequestParam(value = "precioParticular", required = false) Double precioParticular,
     HttpSession sesion,
     RedirectAttributes redirectAttributes
@@ -245,7 +269,7 @@ public class ControladorPanelVeterinaria extends ControladorConVeterinaria {
     }
     try {
       Turno turno = servicioTurno.buscarTurnoDeVeterinaria(veterinaria, turnoId);
-      servicioTurno.finalizar(veterinaria, turnoId, null, precioParticular);
+        servicioTurno.finalizar(veterinaria, turnoId, observaciones, precioParticular);
       servicioReceta.registrar(turno, armarRecetas(medicamentos, indicaciones));
       redirectAttributes.addFlashAttribute(MENSAJE, "Finalizaste la consulta.");
     } catch (TurnoInvalido e) {

@@ -8,7 +8,11 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 import com.tallerwebi.dominio.excepcion.TurnoInvalido;
@@ -415,6 +419,77 @@ public class ServicioTurnoTest {
   }
 
   @Test
+  public void finalizarConObservacionesDeberiaGuardarlasEnElTurno() throws TurnoInvalido {
+    Turno turno = dadoUnTurnoDe(firulais);
+    turno.setVeterinaria(veterinaria);
+    when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
+
+    servicioTurno.finalizar(veterinaria, 5L, "Vacuna aplicada, sin reacciones");
+
+    assertThat(turno.getEstado(), is(EstadoTurno.FINALIZADO));
+    assertThat(turno.getObservacionesProfesional(), is("Vacuna aplicada, sin reacciones"));
+  }
+
+  @Test
+  public void finalizarConObservacionesNoDeberiaPermitirTurnoAjeno() {
+    Veterinaria otra = dadaUnaVeterinariaQueAtiendeDe9A12(consulta);
+    otra.setId(11L);
+    Turno turno = dadoUnTurnoDe(firulais);
+    turno.setVeterinaria(otra);
+    when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
+
+    assertThrows(TurnoInvalido.class, () -> servicioTurno.finalizar(veterinaria, 5L, "Nota"));
+    assertThat(turno.getObservacionesProfesional(), is(nullValue()));
+  }
+
+  @Test
+  public void finalizarConObservacionesUnTurnoCanceladoNoDeberiaGuardarNada() {
+    Turno turno = dadoUnTurnoDe(firulais);
+    turno.setVeterinaria(veterinaria);
+    turno.cancelar();
+    when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
+
+    assertThrows(TurnoInvalido.class, () -> servicioTurno.finalizar(veterinaria, 5L, "Nota"));
+    assertThat(turno.getObservacionesProfesional(), is(nullValue()));
+  }
+
+  @Test
+  public void historialDeberiaListarComoAtencionesSoloLosTurnosFinalizados() throws TurnoInvalido {
+    Turno finalizado = dadoUnTurno(HOY.minusDays(3), DIEZ, EstadoTurno.FINALIZADO);
+    finalizado.setObservacionesProfesional("Control general, todo bien");
+    Turno cancelado = dadoUnTurno(HOY.minusDays(2), DIEZ, EstadoTurno.CANCELADO);
+    Turno proximo = dadoUnTurno(JUEVES, DIEZ, EstadoTurno.CONFIRMADO);
+    when(repositorioTurnoMock.listarPorMascota(1L))
+      .thenReturn(List.of(proximo, cancelado, finalizado));
+
+    HistorialTurnos historial = servicioTurno.historialDe(socio, 1L);
+
+    assertThat(historial.getAtenciones(), contains(finalizado));
+  }
+
+  @Test
+  public void historialDeberiaOrdenarLasAtencionesDeLaMasRecienteALaMasAntigua()
+    throws TurnoInvalido {
+    Turno vieja = dadoUnTurno(HOY.minusDays(10), DIEZ, EstadoTurno.FINALIZADO);
+    Turno reciente = dadoUnTurno(HOY.minusDays(1), DIEZ, EstadoTurno.FINALIZADO);
+    when(repositorioTurnoMock.listarPorMascota(1L)).thenReturn(List.of(vieja, reciente));
+
+    HistorialTurnos historial = servicioTurno.historialDe(socio, 1L);
+
+    assertThat(historial.getAtenciones(), contains(reciente, vieja));
+  }
+
+  @Test
+  public void historialSinTurnosFinalizadosNoDeberiaTenerAtenciones() throws TurnoInvalido {
+    Turno proximo = dadoUnTurno(JUEVES, DIEZ, EstadoTurno.CONFIRMADO);
+    when(repositorioTurnoMock.listarPorMascota(1L)).thenReturn(List.of(proximo));
+
+    HistorialTurnos historial = servicioTurno.historialDe(socio, 1L);
+
+    assertThat(historial.getAtenciones(), is(empty()));
+  }
+
+  @Test
   public void historialDeUnaMascotaAjenaDeberiaLanzarTurnoInvalido() {
     assertThrows(TurnoInvalido.class, () -> servicioTurno.historialDe(socio, 999L));
   }
@@ -637,5 +712,48 @@ public class ServicioTurnoTest {
     turno.setHora(hora);
     turno.setEstado(estado);
     return turno;
+  }
+
+  @Test
+  public void historialClinicoDeLaVeterinariaDeberiaListarSoloLosTurnosFinalizadosDeLaMascota()
+    throws TurnoInvalido {
+    Turno actual = dadoUnTurno(JUEVES, DIEZ, EstadoTurno.CONFIRMADO);
+    actual.setVeterinaria(veterinaria);
+    Turno finalizado = dadoUnTurno(HOY.minusDays(3), DIEZ, EstadoTurno.FINALIZADO);
+    Turno cancelado = dadoUnTurno(HOY.minusDays(2), DIEZ, EstadoTurno.CANCELADO);
+    when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(actual);
+    when(repositorioTurnoMock.listarPorMascota(1L))
+      .thenReturn(List.of(actual, cancelado, finalizado));
+
+    List<Turno> historial = servicioTurno.historialClinicoDe(veterinaria, 5L);
+
+    assertThat(historial, contains(finalizado));
+  }
+
+  @Test
+  public void historialClinicoDeUnTurnoAjenoDeberiaLanzarTurnoInvalido() {
+    Veterinaria otra = dadaUnaVeterinariaQueAtiendeDe9A12(consulta);
+    otra.setId(11L);
+    Turno turno = dadoUnTurno(JUEVES, DIEZ, EstadoTurno.CONFIRMADO);
+    turno.setVeterinaria(otra);
+    when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
+
+    assertThrows(TurnoInvalido.class, () -> servicioTurno.historialClinicoDe(veterinaria, 5L));
+  }
+
+  @Test
+  public void historialClinicoNoDeberiaIncluirLasAtencionesPosterioresAlTurno()
+    throws TurnoInvalido {
+    Turno actual = dadoUnTurno(HOY.minusDays(5), DIEZ, EstadoTurno.FINALIZADO);
+    actual.setVeterinaria(veterinaria);
+    Turno anterior = dadoUnTurno(HOY.minusDays(8), DIEZ, EstadoTurno.FINALIZADO);
+    Turno posterior = dadoUnTurno(HOY.minusDays(2), DIEZ, EstadoTurno.FINALIZADO);
+    when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(actual);
+    when(repositorioTurnoMock.listarPorMascota(1L))
+      .thenReturn(List.of(posterior, actual, anterior));
+
+    List<Turno> historial = servicioTurno.historialClinicoDe(veterinaria, 5L);
+
+    assertThat(historial, contains(actual, anterior));
   }
 }
