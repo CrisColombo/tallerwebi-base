@@ -1,0 +1,154 @@
+package com.tallerwebi.presentacion;
+
+import com.tallerwebi.dominio.*;
+import com.tallerwebi.dominio.excepcion.DatosDeRegistroInvalidos;
+import com.tallerwebi.dominio.excepcion.PagoRechazado;
+import com.tallerwebi.dominio.excepcion.TurnoInvalido;
+import jakarta.servlet.http.HttpSession;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.ModelMap;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+@Controller
+public class ControladorMascota extends ControladorConSocio {
+
+  private ServicioPlan servicioPlan;
+  private ServicioMascota servicioMascota;
+  private ServicioTurno servicioTurno;
+  private ServicioPago servicioPago;
+  private ServicioReceta servicioReceta;
+  private static final String REDIRECT_HOME = "redirect:/home";
+  private static final String REDIRECT_MASCOTA = "redirect:/mascotas/";
+
+  @Autowired
+  public ControladorMascota(
+    ServicioSocio servicioSocio,
+    ServicioPlan servicioPlan,
+    ServicioMascota servicioMascota,
+    ServicioTurno servicioTurno,
+    ServicioPago servicioPago,
+    ServicioReceta servicioReceta
+  ) {
+    super(servicioSocio);
+    this.servicioPlan = servicioPlan;
+    this.servicioMascota = servicioMascota;
+    this.servicioTurno = servicioTurno;
+    this.servicioPago = servicioPago;
+    this.servicioReceta = servicioReceta;
+  }
+
+  @RequestMapping(path = "/mascotas/nueva", method = RequestMethod.GET)
+  public ModelAndView nuevaMascota(HttpSession sesion) {
+    Socio socio = socioLogueado(sesion);
+    if (socio == null) {
+      return new ModelAndView(REDIRECT_HOME);
+    }
+    return vistaNuevaMascota(new Mascota(), null, null);
+  }
+
+  @RequestMapping(path = "/mascotas", method = RequestMethod.POST)
+  public ModelAndView agregarMascota(
+    @ModelAttribute("mascota") Mascota mascota,
+    @RequestParam(value = "planId", required = false) Long planId,
+    HttpSession sesion
+  ) {
+    Socio socio = socioLogueado(sesion);
+    if (socio == null) {
+      return new ModelAndView(REDIRECT_HOME);
+    }
+    Mascota creada;
+    try {
+      creada = servicioMascota.agregarMascota(socio, mascota, planId);
+    } catch (DatosDeRegistroInvalidos e) {
+      return vistaNuevaMascota(mascota, planId, e.getMessage());
+    }
+    try {
+      String urlMercadoPago = servicioPago.iniciarPagoPlan(socio, creada.getId(), planId);
+      return new ModelAndView("redirect:" + urlMercadoPago);
+    } catch (PagoRechazado e) {
+      String mensaje = URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8);
+      return new ModelAndView(REDIRECT_MASCOTA + creada.getId() + "?errorPago=" + mensaje);
+    }
+  }
+
+  private ModelAndView vistaNuevaMascota(Mascota mascota, Long planId, String error) {
+    Map<String, Object> modelo = new ModelMap();
+    modelo.put("mascota", mascota);
+    modelo.put("especies", Especie.values());
+    modelo.put("planes", servicioPlan.listar());
+    modelo.put("planId", planId);
+    if (error != null) {
+      modelo.put("error", error);
+    }
+    return new ModelAndView("nueva-mascota", modelo);
+  }
+
+  @RequestMapping(path = "/mascotas/{id}", method = RequestMethod.GET)
+  public ModelAndView verPerfil(@PathVariable("id") Long id, HttpSession sesion) {
+    Socio socio = socioLogueado(sesion);
+    Mascota mascota = servicioMascota.buscarPorIdParaSocio(socio, id);
+    if (mascota == null) {
+      return new ModelAndView("redirect:/home");
+    }
+    Map<String, Object> modelo = new ModelMap();
+    modelo.put("mascota", mascota);
+    modelo.put("planes", servicioPlan.listar());
+    try {
+      modelo.put("historial", servicioTurno.historialDe(socio, id));
+      modelo.put("recetas", servicioReceta.recetasDe(socio, id));
+    } catch (TurnoInvalido e) {
+      return new ModelAndView("redirect:/home");
+    }
+    return new ModelAndView("mascota-perfil", modelo);
+  }
+
+  @RequestMapping(path = "/mascotas/{id}/recetas/{recetaId}/comprada", method = RequestMethod.POST)
+  public ModelAndView marcarRecetaComprada(
+    @PathVariable("id") Long mascotaId,
+    @PathVariable("recetaId") Long recetaId,
+    HttpSession sesion,
+    RedirectAttributes redirectAttributes
+  ) {
+    Socio socio = socioLogueado(sesion);
+    if (socio == null) {
+      return new ModelAndView(REDIRECT_HOME);
+    }
+    try {
+      servicioReceta.marcarComprada(socio, recetaId);
+      redirectAttributes.addFlashAttribute("mensaje", "Marcaste la receta como comprada.");
+    } catch (TurnoInvalido e) {
+      redirectAttributes.addFlashAttribute("error", e.getMessage());
+    }
+    return redirectMascota(mascotaId);
+  }
+
+  @RequestMapping(path = "/mascotas/{id}/cambiar-plan", method = RequestMethod.POST)
+  public ModelAndView cambiarPlan(
+    @PathVariable("id") Long id,
+    @RequestParam("planId") Long planId,
+    HttpSession sesion
+  ) {
+    servicioMascota.cambiarPlan(socioLogueado(sesion), id, planId);
+    return redirectMascota(id);
+  }
+
+  @RequestMapping(path = "/mascotas/{id}/baja", method = RequestMethod.POST)
+  public ModelAndView darDeBaja(@PathVariable("id") Long id, HttpSession sesion) {
+    servicioMascota.darDeBaja(socioLogueado(sesion), id);
+    return redirectMascota(id);
+  }
+
+  private ModelAndView redirectMascota(Long id) {
+    return new ModelAndView(REDIRECT_MASCOTA + id);
+  }
+}

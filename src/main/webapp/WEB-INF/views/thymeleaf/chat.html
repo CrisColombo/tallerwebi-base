@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+  <head th:replace="~{fragments/layout :: head('MediBot')}"></head>
+  <link rel="stylesheet" th:href="@{/css/chat.css}" />
+  <body>
+    <header
+      th:replace="~{fragments/layout :: encabezado('MediBot', 'Consultá con el asistente sobre tus mascotas.')}"
+    ></header>
+    <h1>Chat asistente</h1>
+
+    <p th:if="${socio == null}">Tenés que ser socio para usar el chat.</p>
+
+    <div id="mensajes"></div>
+
+    <form
+      id="form-chat"
+      th:if="${socio != null}"
+      th:attr="data-endpoint=@{/chat/mensaje}"
+    >
+      <input id="input-mensaje" type="text" size="60" autocomplete="off" />
+      <button type="submit">Enviar</button>
+    </form>
+
+    <p><a th:href="@{/home}">Volver</a></p>
+    <footer th:replace="~{fragments/layout :: pie}"></footer>
+    <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+    <script th:src="@{/js/chat.js}"></script>
+  </body>
+</html>

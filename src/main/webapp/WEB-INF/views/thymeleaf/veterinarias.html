@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+  <head
+    th:replace="~{fragments/layout :: head('Veterinarias adheridas')}"
+  ></head>
+  <body>
+    <header
+      th:replace="~{fragments/layout :: encabezado('Veterinarias adheridas', 'Elegí dónde solicitar un turno para tu mascota.')}"
+    ></header>
+
+    <main class="mp-main">
+      <form
+        th:action="@{/veterinarias}"
+        method="GET"
+        class="veterinarias-filter"
+      >
+        <label class="veterinarias-filter__label" for="servicioId"
+          >Filtrar por servicio</label
+        >
+        <select
+          id="servicioId"
+          name="servicioId"
+          class="veterinarias-filter__select"
+          onchange="this.form.submit()"
+        >
+          <option value="">Todos los servicios</option>
+          <option
+            th:each="s : ${servicios}"
+            th:value="${s.id}"
+            th:text="${s.nombre}"
+            th:selected="${s.id == servicioId}"
+          ></option>
+        </select>
+        <noscript
+          ><button class="veterinarias-filter__btn" type="submit">
+            Filtrar
+          </button></noscript
+        >
+      </form>
+
+      <section
+        th:if="${#lists.isEmpty(veterinarias)}"
+        class="veterinarias-empty"
+        aria-live="polite"
+      >
+        <div class="veterinarias-empty__icon" aria-hidden="true">🐾</div>
+        <h2 class="veterinarias-empty__title">Sin prestadores por ahora</h2>
+        <p class="veterinarias-empty__text">
+          No hay veterinarias adheridas que ofrezcan ese servicio.
+        </p>
+      </section>
+
+      <section
+        th:unless="${#lists.isEmpty(veterinarias)}"
+        class="veterinarias-content"
+      >
+        <div class="veterinarias-search">
+          <label class="veterinarias-search__label" for="buscar-veterinaria">
+            Buscar por nombre o zona
+          </label>
+          <input
+            id="buscar-veterinaria"
+            class="veterinarias-search__input"
+            type="search"
+            placeholder="Ej: San Roque, San Justo..."
+            autocomplete="off"
+          />
+          <p
+            id="veterinarias-sin-resultados"
+            class="veterinarias-search__empty"
+            hidden
+          >
+            No encontramos veterinarias con ese criterio.
+          </p>
+        </div>
+
+        <ul class="veterinarias-list" id="veterinarias-lista">
+          <li
+            th:each="v : ${veterinarias}"
+            class="veterinaria-card"
+            th:with="res=${resenas[v.id]}"
+            th:attr="data-nombre=${v.nombre}, data-direccion=${v.direccion}"
+          >
+            <div class="veterinaria-card__header">
+              <h2 class="veterinaria-card__nombre" th:text="${v.nombre}">
+                Nombre
+              </h2>
+              <span
+                th:if="${v.atiendeEl(T(java.time.LocalDate).now())}"
+                class="veterinaria-card__estado veterinaria-card__estado--abierto"
+                >Abierto hoy</span
+              >
+              <span
+                th:unless="${v.atiendeEl(T(java.time.LocalDate).now())}"
+                class="veterinaria-card__estado veterinaria-card__estado--cerrado"
+                >Cerrado hoy</span
+              >
+            </div>
+
+            <div class="veterinaria-card__info">
+              <p class="veterinaria-card__fila">
+                <span class="veterinaria-card__icon" aria-hidden="true"
+                  >📍</span
+                >
+                <span th:text="${v.direccion}">Dirección</span>
+              </p>
+              <p class="veterinaria-card__fila">
+                <span class="veterinaria-card__icon" aria-hidden="true"
+                  >📞</span
+                >
+                <a class="veterinaria-card__telefono" th:href="'tel:' + ${v.telefono}" th:text="${v.telefono}"
+                  >Teléfono</a
+                >
+              </p>
+              <p class="veterinaria-card__fila">
+                <span class="veterinaria-card__icon" aria-hidden="true"
+                  >🕐</span
+                >
+                <span
+                  th:text="${v.diasAtencionTexto} + ' de ' + ${v.horaApertura} + ' a ' + ${v.horaCierre} + ' hs'"
+                  >Horario</span
+                >
+              </p>
+            </div>
+
+            <div class="veterinaria-card__especialidades">
+              <span
+                th:each="s : ${v.servicios}"
+                class="veterinaria-card__chip"
+                th:text="${s.nombre}"
+                >Servicio</span
+              >
+            </div>
+
+            <div class="veterinaria-card__opiniones">
+              <p
+                th:if="${res == null or res.cantidad == 0}"
+                class="text-muted small mb-0"
+              >
+                Sin reseñas todavía.
+              </p>
+              <p
+                th:if="${res != null and res.cantidad > 0}"
+                class="veterinaria-card__puntaje small mb-1"
+              >
+                <span
+                  class="veterinaria-card__una-estrella"
+                  aria-hidden="true"
+                  title="Promedio"
+                  >★</span
+                >
+                <strong
+                  th:text="${#numbers.formatDecimal(res.promedio, 1, 'COMMA', 1, 'POINT')}"
+                  >4,9</strong
+                >
+                <span
+                  class="text-muted"
+                  th:text="' · ' + ${res.cantidad} + ' reseñas'"
+                >
+                  · 12 reseñas
+                </span>
+              </p>
+              <button
+                th:if="${res != null and res.cantidad > 0}"
+                type="button"
+                class="btn btn-link btn-sm p-0 veterinaria-card__ver-opiniones"
+                data-bs-toggle="modal"
+                th:attr="data-bs-target=|#modal-resenas-${v.id}|,aria-controls=|modal-resenas-${v.id}|"
+              >
+                Ver opiniones
+              </button>
+            </div>
+
+            <a
+              class="veterinaria-card__turno"
+              th:href="@{/turnos/nuevo(veterinariaId=${v.id})}"
+              >Sacar turno acá</a
+            >
+
+            <div
+              class="modal fade"
+              th:id="'modal-resenas-' + ${v.id}"
+              tabindex="-1"
+              th:attr="aria-labelledby='modal-resenas-titulo-' + ${v.id}"
+              aria-hidden="true"
+            >
+              <div class="modal-dialog modal-dialog-scrollable">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h2
+                      class="modal-title fs-5"
+                      th:id="'modal-resenas-titulo-' + ${v.id}"
+                      th:text="'Opiniones de ' + ${v.nombre}"
+                    >
+                      Opiniones
+                    </h2>
+                    <button
+                      type="button"
+                      class="btn-close"
+                      data-bs-dismiss="modal"
+                      aria-label="Cerrar"
+                    ></button>
+                  </div>
+                  <div class="modal-body veterinaria-modal-opiniones">
+                    <p
+                      th:if="${res == null or res.cantidad == 0}"
+                      class="text-muted mb-0"
+                    >
+                      Sin reseñas.
+                    </p>
+                    <ul
+                      class="list-unstyled mb-0"
+                      th:if="${res != null and res.cantidad > 0}"
+                    >
+                      <li
+                        th:each="r : ${resenasDetalle[v.id]}"
+                        class="veterinaria-modal-opinion"
+                      >
+                        <span
+                          class="veterinaria-card__una-estrella"
+                          aria-hidden="true"
+                          >★</span
+                        >
+                        <strong th:text="${r.puntuacion}">5</strong>
+                        <span
+                          class="text-muted small"
+                          th:if="${r.creadoEn != null}"
+                          th:text="' · ' + ${#temporals.format(r.creadoEn, 'dd/MM/yyyy')}"
+                        ></span>
+                        <p class="veterinaria-modal-opinion__texto mb-0" th:text="${r.comentario}">
+                          Comentario
+                        </p>
+                      </li>
+                    </ul>
+                  </div>
+                  <div class="modal-footer">
+                    <button
+                      type="button"
+                      class="btn btn-secondary btn-sm"
+                      data-bs-dismiss="modal"
+                    >
+                      Cerrar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <a th:href="@{/home}" class="veterinarias-back">Volver al inicio</a>
+    </main>
+
+    <footer th:replace="~{fragments/layout :: pie}"></footer>
+
+    <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+    <script th:src="@{/js/veterinarias.js}"></script>
+  </body>
+</html>

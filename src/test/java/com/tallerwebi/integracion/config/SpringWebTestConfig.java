@@ -1,10 +1,20 @@
 package com.tallerwebi.integracion.config;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import com.tallerwebi.infraestructura.ClienteGemini;
+import com.tallerwebi.infraestructura.ClienteMercadoPago;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -28,6 +38,8 @@ public class SpringWebTestConfig implements WebMvcConfigurer {
   public void addResourceHandlers(final ResourceHandlerRegistry registry) {
     registry.addResourceHandler("/css/**").addResourceLocations("/resources/core/css/");
     registry.addResourceHandler("/js/**").addResourceLocations("/resources/core/js/");
+    // Para las imágenes que se encuentran en el directorio /resources/core/img/ (Axel)
+    registry.addResourceHandler("/img/**").addResourceLocations("/resources/core/img/");
     registry.addResourceHandler("/webjars/**").addResourceLocations("/webjars/");
   }
 
@@ -45,7 +57,7 @@ public class SpringWebTestConfig implements WebMvcConfigurer {
     templateResolver.setTemplateMode(TemplateMode.HTML);
     // Template cache is true by default. Set to false if you want
     // templates to be automatically updated when modified.
-    templateResolver.setCacheable(true);
+    templateResolver.setCacheable(false);
     return templateResolver;
   }
 
@@ -72,5 +84,25 @@ public class SpringWebTestConfig implements WebMvcConfigurer {
     ThymeleafViewResolver viewResolver = new ThymeleafViewResolver();
     viewResolver.setTemplateEngine(templateEngine());
     return viewResolver;
+  }
+
+  @Bean
+  public PasswordEncoder passwordEncoder() {
+    return new BCryptPasswordEncoder();
+  }
+
+  /** Evita cargar la API de Gemini en tests de integración (sin GEMINI_API_KEY). */
+  @Bean
+  @Primary
+  public ClienteGemini clienteGemini() {
+    ClienteGemini gemini = mock(ClienteGemini.class);
+    when(gemini.completar(any(), anyString())).thenReturn("Respuesta de prueba.");
+    return gemini;
+  }
+
+  @Bean
+  @Primary
+  public ClienteMercadoPago clienteMercadoPago() {
+    return mock(ClienteMercadoPago.class);
   }
 }

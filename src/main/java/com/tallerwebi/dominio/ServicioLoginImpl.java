@@ -1,8 +1,8 @@
 package com.tallerwebi.dominio;
 
-import com.tallerwebi.dominio.excepcion.UsuarioExistente;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service("servicioLogin")
@@ -10,26 +10,20 @@ import org.springframework.stereotype.Service;
 public class ServicioLoginImpl implements ServicioLogin {
 
   private RepositorioUsuario repositorioUsuario;
+  private PasswordEncoder passwordEncoder;
 
   @Autowired
-  public ServicioLoginImpl(RepositorioUsuario repositorioUsuario) {
+  public ServicioLoginImpl(RepositorioUsuario repositorioUsuario, PasswordEncoder passwordEncoder) {
     this.repositorioUsuario = repositorioUsuario;
+    this.passwordEncoder = passwordEncoder;
   }
 
   @Override
   public Usuario consultarUsuario(String email, String password) {
-    return repositorioUsuario.buscarUsuario(email, password);
-  }
-
-  @Override
-  public void registrar(Usuario usuario) throws UsuarioExistente {
-    Usuario usuarioEncontrado = repositorioUsuario.buscarUsuario(
-      usuario.getEmail(),
-      usuario.getPassword()
-    );
-    if (usuarioEncontrado != null) {
-      throw new UsuarioExistente();
+    Usuario usuario = repositorioUsuario.buscar(email);
+    if (usuario != null && passwordEncoder.matches(password, usuario.getPassword())) {
+      return usuario;
     }
-    repositorioUsuario.guardar(usuario);
+    return null;
   }
 }

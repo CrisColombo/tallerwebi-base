@@ -1,0 +1,66 @@
+<!DOCTYPE HTML>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/layout :: head('Registro')}"></head>
+
+<body>
+
+  <header th:replace="~{fragments/layout :: encabezado('Registrarme como socio', 'Cargá tus datos, los de tu mascota y elegí su plan de cobertura.')}"></header>
+
+  <main role="main" class="mp-main mp-main--angosto">
+    <form action="#" th:action="@{/registrarme}" method="POST" th:object="${datosRegistro}">
+
+      <p th:if="${error != null}" class="alert alert-danger" th:text="'Error ' + ${error}"></p>
+
+      <section class="mp-card">
+        <h2 class="mp-seccion-titulo">Tus datos</h2>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label for="nombre" class="form-label">Nombre</label>
+            <input th:field="*{nombre}" id="nombre" class="form-control" required />
+          </div>
+          <div class="col-md-6">
+            <label for="apellido" class="form-label">Apellido</label>
+            <input th:field="*{apellido}" id="apellido" class="form-control" required />
+          </div>
+          <div class="col-md-6">
+            <label for="dni" class="form-label">DNI</label>
+            <input th:field="*{dni}" id="dni" class="form-control" inputmode="numeric" pattern="\d{7,8}"
+              required />
+          </div>
+          <div class="col-md-6">
+            <label for="telefono" class="form-label">Teléfono</label>
+            <input th:field="*{telefono}" id="telefono" type="tel" class="form-control" />
+          </div>
+          <div class="col-md-6">
+            <label for="email" class="form-label">Email</label>
+            <input th:field="*{email}" id="email" type="email" class="form-control" required />
+          </div>
+          <div class="col-md-6">
+            <label for="password" class="form-label">Contraseña</label>
+            <input th:field="*{password}" id="password" type="password" class="form-control" required />
+          </div>
+        </div>
+      </section>
+
+      <section class="mp-card">
+        <h2 class="mp-seccion-titulo">Tu mascota</h2>
+        <div
+          th:replace="~{fragments/mascota-form :: campos(${datosRegistro.mascota}, 'mascota.', 'registro-', ${planes}, ${especies}, ${datosRegistro.planId})}">
+        </div>
+      </section>
+
+      <div class="d-flex flex-wrap align-items-center gap-2 mt-4">
+        <button id="btn-registrarme" class="btn btn-lg btn-primary" type="submit">Registrarme</button>
+        <a th:href="@{/login}" class="btn btn-link">Ya tengo cuenta</a>
+      </div>
+    </form>
+  </main>
+
+  <footer th:replace="~{fragments/layout :: pie}"></footer>
+
+  <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+
+</body>
+
+</html>

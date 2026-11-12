@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+  <head th:replace="~{fragments/layout :: head('Perfil de mascota')}"></head>
+
+  <body>
+    <header
+      th:replace="~{fragments/layout :: encabezado(${mascota.nombre}, ${mascota.especie} + (${mascota.raza != null and !#strings.isEmpty(mascota.raza)} ? ' · ' + ${mascota.raza} : ''))}"
+    ></header>
+
+    <main role="main" class="mp-main mp-main--angosto">
+      <a th:href="@{/home}" class="btn btn-link ps-0 mb-3"
+        >&larr; Volver al inicio</a
+      >
+
+      <section class="mp-card">
+        <div th:if="${param.pagoOk}" class="alert alert-success" role="status">
+          Pago registrado. La suscripción quedó al día por un mes.
+        </div>
+        <div
+          th:if="${param.errorPago}"
+          class="alert alert-danger"
+          role="alert"
+          th:text="${param.errorPago}"
+        >
+          No se pudo confirmar el pago.
+        </div>
+
+        <div
+          th:if="${!mascota.suscripcionAlDia()}"
+          class="alert alert-warning"
+          role="status"
+        >
+          Tu mascota no tiene un plan vigente. Pagá la suscripción para sacar un
+          turno.
+        </div>
+
+        <p
+          th:if="${mensaje != null}"
+          class="alert alert-success"
+          th:text="${mensaje}"
+        ></p>
+        <p
+          th:if="${error != null}"
+          class="alert alert-danger"
+          th:text="${error}"
+        ></p>
+
+        <h2 class="mp-seccion-titulo">Plan de cobertura</h2>
+
+        <dl class="row mt-4">
+          <dt class="col-sm-3">Especie</dt>
+          <dd class="col-sm-9" th:text="${mascota.especie}">PERRO</dd>
+
+          <dt
+            class="col-sm-3"
+            th:if="${mascota.raza != null and !#strings.isEmpty(mascota.raza)}"
+          >
+            Raza
+          </dt>
+          <dd
+            class="col-sm-9"
+            th:if="${mascota.raza != null and !#strings.isEmpty(mascota.raza)}"
+            th:text="${mascota.raza}"
+          >
+            Labrador
+          </dd>
+
+          <dt class="col-sm-3" th:if="${mascota.fechaNacimiento != null}">
+            Fecha de nacimiento
+          </dt>
+          <dd
+            class="col-sm-9"
+            th:if="${mascota.fechaNacimiento != null}"
+            th:text="${#temporals.format(mascota.fechaNacimiento, 'dd/MM/yyyy')}"
+          >
+            01/01/2020
+          </dd>
+
+          <dt class="col-sm-3" th:if="${mascota.peso != null}">Peso</dt>
+          <dd
+            class="col-sm-9"
+            th:if="${mascota.peso != null}"
+            th:text="${mascota.peso} + ' kg'"
+          >
+            10 kg
+          </dd>
+
+          <dt class="col-sm-3">Plan actual</dt>
+          <dd class="col-sm-9">
+            <span
+              class="badge mp-badge-plan"
+              th:text="${mascota.plan != null} ? ${mascota.plan.nombre} : 'Sin plan'"
+              >Plan</span
+            >
+          </dd>
+
+          <dt class="col-sm-3">Suscripción</dt>
+          <dd class="col-sm-9">
+            <span
+              th:if="${mascota.suscripcionAlDia()}"
+              class="badge text-bg-success"
+              th:text="'Al día hasta ' + ${#temporals.format(mascota.venceSuscripcion, 'dd/MM/yyyy')}"
+              >Al día</span
+            >
+            <span
+              th:if="${mascota.venceSuscripcion != null and !mascota.sinPagoRegistrado() and !mascota.suscripcionAlDia()}"
+              class="badge text-bg-danger"
+              th:text="'Vencida el ' + ${#temporals.format(mascota.venceSuscripcion, 'dd/MM/yyyy')}"
+              >Vencida</span
+            >
+            <span
+              th:if="${mascota.sinPagoRegistrado()}"
+              class="badge text-bg-secondary"
+              >Sin pago</span
+            >
+          </dd>
+        </dl>
+
+        <form
+          th:action="@{/mascotas/{id}/pagar-plan(id=${mascota.id})}"
+          method="POST"
+          class="mt-4"
+        >
+          <label for="planIdPago" class="form-label"
+            >Pagar, renovar o cambiar de plan</label
+          >
+          <div class="d-flex flex-wrap gap-2">
+            <select
+              id="planIdPago"
+              name="planId"
+              class="form-select"
+              style="max-width: 280px"
+              required
+            >
+              <option
+                th:each="p : ${planes}"
+                th:value="${p.id}"
+                th:text="${p.nombre} + ' — $' + ${#numbers.formatDecimal(p.precio, 1, 'POINT', 0,
+            'COMMA')}"
+                th:selected="${mascota.plan != null and mascota.plan.id == p.id}"
+              ></option>
+            </select>
+            <button
+              id="btn-pagar-plan"
+              type="submit"
+              class="btn btn-success"
+              th:attr="data-plan-actual=${mascota.plan != null ? mascota.plan.id : ''}, data-al-dia=${mascota.suscripcionAlDia()}"
+              th:text="${mascota.suscripcionAlDia()} ? 'Renovar un mes' : 'Pagar con Mercado Pago'"
+            >
+              Pagar con Mercado Pago
+            </button>
+          </div>
+        </form>
+
+        <form
+          th:if="${mascota.plan != null}"
+          th:action="@{/mascotas/{id}/baja(id=${mascota.id})}"
+          method="POST"
+          class="mt-3"
+          onsubmit="
+            return confirm(
+              '¿Seguro que querés dar de baja el plan de esta mascota?',
+            );
+          "
+        >
+          <button type="submit" class="btn btn-outline-danger">
+            Dar de baja del plan
+          </button>
+        </form>
+      </section>
+
+      <section class="mp-card" id="recetas">
+        <h2 class="mp-seccion-titulo">Recetas</h2>
+
+        <p
+          th:if="${#lists.isEmpty(recetas)}"
+          class="text-muted mb-0"
+          th:text="${mascota.nombre} + ' todavía no tiene recetas.'"
+        >
+          Todavía no tiene recetas.
+        </p>
+
+        <div class="border rounded-3 p-3 mb-3" th:each="c : ${recetas}">
+          <div class="d-flex flex-wrap justify-content-between gap-2">
+            <strong
+              th:text="${c.turno.servicio.nombre} + ' · ' + ${#temporals.format(c.turno.fecha, 'dd/MM/yyyy')}"
+              >Consulta · 05/11/2026</strong
+            >
+            <span class="small text-muted" th:text="${c.turno.veterinaria.nombre}"
+              >Veterinaria</span
+            >
+          </div>
+          <ul class="list-group list-group-flush">
+            <li
+              class="list-group-item px-0 d-flex justify-content-between align-items-start gap-2"
+              th:each="r : ${c.recetas}"
+            >
+              <div>
+                <strong th:text="${r.medicamento}">Amoxicilina</strong>
+                <div
+                  class="small text-muted"
+                  th:if="${!#strings.isEmpty(r.indicaciones)}"
+                  th:text="${r.indicaciones}"
+                >
+                  Cada 12 horas
+                </div>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <th:block th:if="${r.estaPendiente()}">
+                  <span class="badge text-bg-warning">Pendiente</span>
+                  <form
+                    th:action="@{/mascotas/{id}/recetas/{recetaId}/comprada(id=${mascota.id}, recetaId=${r.id})}"
+                    method="POST"
+                  >
+                    <button class="btn btn-outline-primary btn-sm" type="submit">
+                      Marcar comprada
+                    </button>
+                  </form>
+                </th:block>
+                <span
+                  th:unless="${r.estaPendiente()}"
+                  class="badge text-bg-success"
+                  th:text="'Comprada ' + ${#temporals.format(r.fechaCompra, 'dd/MM')}"
+                  >Comprada</span
+                >
+              </div>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Historial de turnos: "historial" lo arma ServicioTurno.historialDe
+         (próximos = confirmados a futuro; pasados = el resto) -->
+      <section class="mp-card" id="turnos-proximos">
+        <div
+          class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3"
+        >
+          <h2 class="mp-seccion-titulo mb-0">Próximos turnos</h2>
+          <a
+            th:if="${mascota.suscripcionAlDia()}"
+            class="btn btn-primary btn-sm"
+            th:href="@{/turnos/nuevo(mascotaId=${mascota.id})}"
+            th:text="'Sacar turno para ' + ${mascota.nombre}"
+            >Sacar turno</a
+          >
+        </div>
+
+        <p
+          th:if="${#lists.isEmpty(historial.proximos)}"
+          class="text-muted mb-0"
+          th:text="${mascota.nombre} + ' no tiene turnos próximos.'"
+        >
+          No tiene turnos próximos.
+        </p>
+
+        <ul
+          class="list-group"
+          th:unless="${#lists.isEmpty(historial.proximos)}"
+        >
+          <li
+            class="list-group-item d-flex justify-content-between align-items-start gap-2"
+            th:each="t : ${historial.proximos}"
+          >
+            <div>
+              <strong
+                th:text="${#temporals.format(t.fecha, 'dd/MM/yyyy')} + ' ' + ${t.hora}"
+                >01/10/2026 10:00</strong
+              >
+              · <span th:text="${t.servicio.nombre}">Servicio</span>
+              <div class="small text-muted" th:text="${t.veterinaria.nombre}">
+                Veterinaria
+              </div>
+            </div>
+            <span class="badge text-bg-success" th:text="${t.estado}"
+              >CONFIRMADO</span
+            >
+          </li>
+        </ul>
+      </section>
+
+      <section class="mp-card" id="turnos-pasados">
+        <h2 class="mp-seccion-titulo">Turnos pasados</h2>
+
+        <p
+          th:if="${#lists.isEmpty(historial.pasados)}"
+          class="text-muted mb-0"
+          th:text="${mascota.nombre} + ' todavía no tiene turnos pasados.'"
+        >
+          Todavía no tiene turnos pasados.
+        </p>
+
+        <ul class="list-group" th:unless="${#lists.isEmpty(historial.pasados)}">
+          <li class="list-group-item" th:each="t : ${historial.pasados}">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div>
+                <strong
+                  th:text="${#temporals.format(t.fecha, 'dd/MM/yyyy')} + ' ' + ${t.hora}"
+                  >01/09/2026 10:00</strong
+                >
+                · <span th:text="${t.servicio.nombre}">Servicio</span>
+                <div class="small text-muted" th:text="${t.veterinaria.nombre}">
+                  Veterinaria
+                </div>
+              </div>
+              <span
+                class="badge"
+                th:text="${t.estado}"
+                th:classappend="${t.estado.name() == 'CONFIRMADO'} ? 'text-bg-success' : (${t.estado.name() == 'CANCELADO'} ? 'text-bg-secondary' : 'text-bg-info')"
+                >FINALIZADO</span
+              >
+            </div>
+          </li>
+        </ul>
+      </section>
+    </main>
+
+    <footer th:replace="~{fragments/layout :: pie}"></footer>
+
+    <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+    <script>
+      (function () {
+        var select = document.getElementById("planIdPago");
+        var boton = document.getElementById("btn-pagar-plan");
+        if (!select || !boton) return;
+        var actualizar = function () {
+          var alDia = boton.getAttribute("data-al-dia") === "true";
+          var actual = boton.getAttribute("data-plan-actual") || "";
+          var mismo = actual !== "" && select.value === String(actual);
+          if (alDia && mismo) {
+            boton.textContent = "Renovar un mes";
+            return;
+          }
+          if (actual !== "" && !mismo) {
+            boton.textContent = "Pagar y cambiar de plan";
+            return;
+          }
+          boton.textContent = "Pagar con Mercado Pago";
+        };
+        select.addEventListener("change", actualizar);
+        actualizar();
+      })();
+    </script>
+  </body>
+</html>
