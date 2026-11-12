@@ -320,7 +320,15 @@ public class ControladorPanelVeterinariaTest {
     Turno turno = new Turno();
     when(servicioTurno.buscarTurnoDeVeterinaria(veterinaria, TURNO_ID)).thenReturn(turno);
 
-    controlador.finalizar(TURNO_ID, null, null, null, null, sesion, new RedirectAttributesModelMap());
+    controlador.finalizar(
+      TURNO_ID,
+      null,
+      null,
+      null,
+      null,
+      sesion,
+      new RedirectAttributesModelMap()
+    );
 
     verify(servicioTurno).finalizar(veterinaria, TURNO_ID, null, null);
     verify(servicioReceta).registrar(eq(turno), eq(List.of()));
@@ -353,7 +361,7 @@ public class ControladorPanelVeterinariaTest {
       .finalizar(veterinaria, TURNO_ID, null, null);
     RedirectAttributesModelMap attrs = new RedirectAttributesModelMap();
 
-    controlador.finalizar(TURNO_ID, List.of("Amoxicilina"), List.of(""), null, null,  sesion, attrs);
+    controlador.finalizar(TURNO_ID, List.of("Amoxicilina"), List.of(""), null, null, sesion, attrs);
 
     assertThat(
       attrs.getFlashAttributes().get("error"),
@@ -368,6 +376,7 @@ public class ControladorPanelVeterinariaTest {
 
     ModelAndView mav = controlador.finalizar(
       TURNO_ID,
+      null,
       null,
       null,
       null,

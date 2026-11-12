@@ -11,6 +11,7 @@ import jakarta.persistence.ManyToOne;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
+@SuppressWarnings("PMD.TooManyFields")
 @Entity
 public class Turno {
 

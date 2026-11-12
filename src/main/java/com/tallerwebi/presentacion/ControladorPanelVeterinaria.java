@@ -269,7 +269,7 @@ public class ControladorPanelVeterinaria extends ControladorConVeterinaria {
     }
     try {
       Turno turno = servicioTurno.buscarTurnoDeVeterinaria(veterinaria, turnoId);
-        servicioTurno.finalizar(veterinaria, turnoId, observaciones, precioParticular);
+      servicioTurno.finalizar(veterinaria, turnoId, observaciones, precioParticular);
       servicioReceta.registrar(turno, armarRecetas(medicamentos, indicaciones));
       redirectAttributes.addFlashAttribute(MENSAJE, "Finalizaste la consulta.");
     } catch (TurnoInvalido e) {
