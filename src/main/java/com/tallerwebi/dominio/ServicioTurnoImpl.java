@@ -179,11 +179,17 @@ public class ServicioTurnoImpl implements ServicioTurno {
 
   @Override
   public void finalizar(Veterinaria veterinaria, Long turnoId) throws TurnoInvalido {
+    finalizar(veterinaria, turnoId, null);
+  }
+
+  @Override
+  public void finalizar(Veterinaria veterinaria, Long turnoId, String observaciones)
+    throws TurnoInvalido {
     Turno turno = buscarTurnoDeVeterinaria(veterinaria, turnoId);
     if (!turno.estaConfirmado()) {
       throw new TurnoInvalido("Solo se pueden finalizar turnos confirmados");
     }
-    turno.finalizar();
+    turno.finalizar(observaciones);
   }
 
   @Override
