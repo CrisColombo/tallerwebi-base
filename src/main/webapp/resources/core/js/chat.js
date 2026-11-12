@@ -1,3 +1,5 @@
+/* global marked, DOMPurify */
+
 // Convierte markdown del bot a HTML seguro
 function htmlDesdeMarkdown(texto) {
   let html = marked.parse(texto, { breaks: true }); // https://marked.js.org/
