@@ -7,3 +7,32 @@ mvn jetty:run
 
 Detener MySql linux
 sudo systemctl stop mysql
+
+Exponer el puerto 8080 para que Mercado Pago vuelva a la app
+# Una sola vez: ngrok config add-authtoken TU_TOKEN
+# Con Jetty ya corriendo, en otra terminal:
+ngrok http 8080
+# Copiar la URL https que muestra Forwarding y ponerla en .env, con /spring al final:
+# APP_BASE_URL=https://TU-SUBDOMINIO.ngrok-free.app/spring
+# Reiniciar Jetty para que tome el .env nuevo:
+set -a && source .env && set +a
+mvn jetty:run
+
+
+Usuario de prueba:
+TESTUSER6102600951804838996
+
+Email: 
+test_user_6102600951804838996@testuser.com
+
+Codigo de verificacion
+736926
+
+Contraseña
+hWP02V8pl6
+
+UserId
+3817736926
+
+
+axelvalientehex97@gmail.com

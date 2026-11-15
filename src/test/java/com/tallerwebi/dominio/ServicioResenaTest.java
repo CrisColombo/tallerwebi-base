@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -16,12 +17,14 @@ import com.tallerwebi.infraestructura.RepositorioResena;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 public class ServicioResenaTest {
 
   private ServicioResena servicioResena;
   private RepositorioResena repositorioResena;
   private ServicioTurno servicioTurno;
+  private MediControl mediControl;
   private Socio socio;
   private Turno turno;
 
@@ -29,7 +32,9 @@ public class ServicioResenaTest {
   public void init() throws TurnoInvalido {
     repositorioResena = mock(RepositorioResena.class);
     servicioTurno = mock(ServicioTurno.class);
-    servicioResena = new ServicioResenaImpl(repositorioResena, servicioTurno);
+    mediControl = mock(MediControl.class);
+    when(mediControl.debeCensurar(anyString())).thenReturn(false);
+    servicioResena = new ServicioResenaImpl(repositorioResena, servicioTurno, mediControl);
 
     socio = new Socio();
     Veterinaria veterinaria = new Veterinaria();
@@ -46,7 +51,16 @@ public class ServicioResenaTest {
   public void crearResenaDeTurnoFinalizadoDeberiaGuardarla() throws ResenaInvalida {
     servicioResena.crearResena(socio, 10L, 5, "  Muy buena atención  ");
 
-    verify(repositorioResena).guardar(any(Resena.class));
+    assertThat(resenaGuardada().getComentario(), equalTo("Muy buena atención"));
+  }
+
+  @Test
+  public void comentarioCensuradoDeberiaGuardarLaFraseDeMediControl() throws ResenaInvalida {
+    when(mediControl.debeCensurar("Esto es un insulto")).thenReturn(true);
+
+    servicioResena.crearResena(socio, 10L, 2, "Esto es un insulto");
+
+    assertThat(resenaGuardada().getComentario(), equalTo(MediControl.COMENTARIO_OCULTO));
   }
 
   @Test
@@ -155,6 +169,12 @@ public class ServicioResenaTest {
       servicioResena.listarPorVeterinarias(List.of(turno.getVeterinaria(), otra)).size(),
       equalTo(2)
     );
+  }
+
+  private Resena resenaGuardada() {
+    ArgumentCaptor<Resena> captor = ArgumentCaptor.forClass(Resena.class);
+    verify(repositorioResena).guardar(captor.capture());
+    return captor.getValue();
   }
 
   private Resena resena(int puntuacion) {

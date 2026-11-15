@@ -175,6 +175,123 @@ public class ServicioVeterinariaTest {
     assertThat(passwordEncoder.matches("secreto", guardada), is(true));
   }
 
+  @Test
+  public void actualizarPerfilSinVeterinariaIdentificadaDeberiaRechazarlo() {
+    when(repositorioVeterinariaMock.buscarPorUsuario(40L)).thenReturn(null);
+
+    DatosDeRegistroInvalidos error = assertThrows(
+      DatosDeRegistroInvalidos.class,
+      () ->
+        servicioVeterinaria.actualizarPerfil(
+          40L,
+          datosRegistroValidos(),
+          "vet@test.com",
+          List.of(13L)
+        )
+    );
+
+    assertThat(error.getMessage(), equalTo("No se pudo identificar a la veterinaria"));
+  }
+
+  @Test
+  public void actualizarPerfilConCuitDeOtraVeterinariaDeberiaRechazarlo() {
+    Veterinaria existente = datosRegistroValidos();
+    existente.setId(30L);
+    existente.getUsuario().setId(40L);
+    Veterinaria otra = new Veterinaria();
+    otra.setId(99L);
+    when(repositorioVeterinariaMock.buscarPorUsuario(40L)).thenReturn(existente);
+    when(repositorioVeterinariaMock.buscarPorCuit("30712345671")).thenReturn(otra);
+
+    DatosDeRegistroInvalidos error = assertThrows(
+      DatosDeRegistroInvalidos.class,
+      () ->
+        servicioVeterinaria.actualizarPerfil(
+          40L,
+          datosRegistroValidos(),
+          "vet@test.com",
+          List.of(13L)
+        )
+    );
+
+    assertThat(error.getMessage(), equalTo("Ya existe una veterinaria con ese CUIT/CUIL"));
+  }
+
+  @Test
+  public void registrarSinDatosObligatoriosDeberiaRechazarla() {
+    Veterinaria sinNombre = datosRegistroValidos();
+    sinNombre.setNombre("  ");
+
+    DatosDeRegistroInvalidos error = assertThrows(
+      DatosDeRegistroInvalidos.class,
+      () -> servicioVeterinaria.registrar(sinNombre, List.of(13L))
+    );
+
+    assertThat(error.getMessage(), equalTo("Nombre, dirección y teléfono son obligatorios"));
+  }
+
+  @Test
+  public void registrarSinServiciosElegidosDeberiaRechazarla() {
+    DatosDeRegistroInvalidos error = assertThrows(
+      DatosDeRegistroInvalidos.class,
+      () -> servicioVeterinaria.registrar(datosRegistroValidos(), List.of())
+    );
+
+    assertThat(error.getMessage(), equalTo("Elegí al menos un servicio"));
+  }
+
+  @Test
+  public void registrarSinContrasenaDeberiaRechazarla() {
+    Veterinaria sinClave = datosRegistroValidos();
+    sinClave.getUsuario().setPassword("");
+
+    DatosDeRegistroInvalidos error = assertThrows(
+      DatosDeRegistroInvalidos.class,
+      () -> servicioVeterinaria.registrar(sinClave, List.of(13L))
+    );
+
+    assertThat(error.getMessage(), equalTo("La contraseña es obligatoria"));
+  }
+
+  @Test
+  public void registrarConEmailInvalidoDeberiaRechazarla() {
+    Veterinaria veterinaria = datosRegistroValidos();
+    veterinaria.getUsuario().setEmail("no-es-un-mail");
+
+    DatosDeRegistroInvalidos error = assertThrows(
+      DatosDeRegistroInvalidos.class,
+      () -> servicioVeterinaria.registrar(veterinaria, List.of(13L))
+    );
+
+    assertThat(error.getMessage(), equalTo("Ingresá un email válido"));
+  }
+
+  @Test
+  public void registrarConCuitCortoDeberiaRechazarla() {
+    Veterinaria veterinaria = datosRegistroValidos();
+    veterinaria.setCuit("123");
+
+    DatosDeRegistroInvalidos error = assertThrows(
+      DatosDeRegistroInvalidos.class,
+      () -> servicioVeterinaria.registrar(veterinaria, List.of(13L))
+    );
+
+    assertThat(error.getMessage(), equalTo("El CUIT/CUIL debe tener 11 números"));
+  }
+
+  @Test
+  public void registrarConHorarioQueNoEsDeMediaHoraDeberiaRechazarla() {
+    Veterinaria veterinaria = datosRegistroValidos();
+    veterinaria.setHoraApertura(LocalTime.of(9, 15));
+
+    DatosDeRegistroInvalidos error = assertThrows(
+      DatosDeRegistroInvalidos.class,
+      () -> servicioVeterinaria.registrar(veterinaria, List.of(13L))
+    );
+
+    assertThat(error.getMessage(), equalTo("Elegí horarios válidos en intervalos de 30 minutos"));
+  }
+
   private Veterinaria datosRegistroValidos() {
     Veterinaria veterinaria = new Veterinaria();
     veterinaria.setNombre("Veterinaria Central");

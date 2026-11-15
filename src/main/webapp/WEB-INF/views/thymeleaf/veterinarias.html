@@ -227,8 +227,38 @@
                           th:if="${r.creadoEn != null}"
                           th:text="' · ' + ${#temporals.format(r.creadoEn, 'dd/MM/yyyy')}"
                         ></span>
-                        <p class="veterinaria-modal-opinion__texto mb-0" th:text="${r.comentario}">
-                          Comentario
+                        <p
+                          class="veterinaria-modal-opinion__contexto mb-0"
+                          th:if="${r.socio != null or (r.turno != null and (r.turno.mascota != null or r.turno.servicio != null))}"
+                        >
+                          <span
+                            th:if="${r.socio != null}"
+                            th:text="${(r.socio.nombre != null ? r.socio.nombre : '') + (r.socio.apellido != null and !#strings.isEmpty(r.socio.apellido) ? ' ' + r.socio.apellido : '')}"
+                            >Lucía Gómez</span
+                          >
+                          <span
+                            th:if="${r.turno != null and r.turno.mascota != null}"
+                            th:text="${(r.socio != null ? ' · ' : '') + r.turno.mascota.nombre}"
+                            >· Firulais</span
+                          >
+                          <span
+                            th:if="${r.turno != null and r.turno.servicio != null}"
+                            th:text="${((r.socio != null or r.turno.mascota != null) ? ' · ' : '') + r.turno.servicio.nombre}"
+                            >· Consulta clínica</span
+                          >
+                        </p>
+                        <p
+                          class="veterinaria-modal-opinion__texto mb-0"
+                          th:with="oculto=${r.comentario == 'Comentario oculto por MediControl por no cumplir las normas de Medipet.'}"
+                        >
+                          <em
+                            th:if="${oculto}"
+                            class="veterinaria-modal-opinion__texto--oculto"
+                            style="font-style: italic; font-weight: 400;"
+                            th:text="${r.comentario}"
+                            >Comentario oculto</em
+                          >
+                          <span th:unless="${oculto}" th:text="${r.comentario}">Comentario</span>
                         </p>
                       </li>
                     </ul>

@@ -463,4 +463,94 @@ public class ControladorPanelVeterinariaTest {
     assertThat(mav.getViewName(), equalTo("redirect:/veterinaria/turnos"));
     assertThat(attrs.getFlashAttributes().get("error"), equalTo("No encontramos ese turno"));
   }
+
+  @Test
+  public void sinSesionDeVeterinariaCadaAccionDeberiaVolverAlHome() throws Exception {
+    when(sesion.getAttribute(ControladorLogin.ROL)).thenReturn("SOCIO");
+    RedirectAttributesModelMap attrs = new RedirectAttributesModelMap();
+
+    assertThat(
+      controlador.actualizarPerfil(datos, sesion, attrs).getViewName(),
+      equalTo("redirect:/home")
+    );
+    assertThat(controlador.turnos(sesion).getViewName(), equalTo("redirect:/home"));
+    assertThat(
+      controlador.cancelar(TURNO_ID, sesion, attrs).getViewName(),
+      equalTo("redirect:/home")
+    );
+    assertThat(
+      controlador.formularioReprogramar(TURNO_ID, LocalDate.now(), sesion, attrs).getViewName(),
+      equalTo("redirect:/home")
+    );
+    assertThat(
+      controlador
+        .reprogramar(TURNO_ID, LocalDate.now(), LocalTime.NOON, sesion, attrs)
+        .getViewName(),
+      equalTo("redirect:/home")
+    );
+    assertThat(
+      controlador.formularioFinalizar(TURNO_ID, sesion, attrs).getViewName(),
+      equalTo("redirect:/home")
+    );
+    assertThat(
+      controlador.historialClinico(TURNO_ID, sesion, attrs).getViewName(),
+      equalTo("redirect:/home")
+    );
+    verifyNoInteractions(servicioTurno);
+  }
+
+  @Test
+  public void finalizarTurnoAtendidoDeberiaRedirigirConMensaje() throws Exception {
+    ModelAndView mav = controlador.finalizarTurno(TURNO_ID, sesion);
+
+    verify(servicioTurno).finalizarTurno(veterinaria, TURNO_ID);
+    assertThat(
+      mav.getViewName(),
+      equalTo("redirect:/veterinaria/turnos?mensaje= Turno marcado como atendido")
+    );
+  }
+
+  @Test
+  public void finalizarTurnoInvalidoPorElAtajoDeberiaMostrarElError() throws Exception {
+    doThrow(new TurnoInvalido("Solo se pueden finalizar turnos confirmados"))
+      .when(servicioTurno)
+      .finalizarTurno(veterinaria, TURNO_ID);
+
+    ModelAndView mav = controlador.finalizarTurno(TURNO_ID, sesion);
+
+    assertThat(
+      mav.getViewName(),
+      equalTo("redirect:/veterinaria/turnos?error=Solo se pueden finalizar turnos confirmados")
+    );
+  }
+
+  @Test
+  public void finalizarTurnoSinSesionDeberiaVolverAlHome() {
+    when(sesion.getAttribute(ControladorLogin.ROL)).thenReturn("SOCIO");
+
+    ModelAndView mav = controlador.finalizarTurno(TURNO_ID, sesion);
+
+    assertThat(mav.getViewName(), equalTo("redirect:/home"));
+  }
+
+  @Test
+  public void finalizarConMasMedicamentosQueIndicacionesDeberiaDejarLaIndicacionVacia()
+    throws Exception {
+    Turno turno = new Turno();
+    when(servicioTurno.buscarTurnoDeVeterinaria(veterinaria, TURNO_ID)).thenReturn(turno);
+
+    controlador.finalizar(
+      TURNO_ID,
+      List.of("Amoxicilina", "Meloxicam"),
+      List.of("Cada 12 horas"),
+      null,
+      null,
+      sesion,
+      new RedirectAttributesModelMap()
+    );
+
+    ArgumentCaptor<List<DatosReceta>> captor = ArgumentCaptor.forClass(List.class);
+    verify(servicioReceta).registrar(eq(turno), captor.capture());
+    assertThat(captor.getValue().get(1).getIndicaciones(), equalTo(""));
+  }
 }
