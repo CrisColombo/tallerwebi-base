@@ -2,6 +2,7 @@ package com.tallerwebi.integracion.config;
 
 import java.util.Properties;
 import javax.sql.DataSource;
+import org.hibernate.SessionFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
@@ -33,8 +34,8 @@ public class HibernateTestConfig {
   }
 
   @Bean
-  public HibernateTransactionManager transactionManager() {
-    return new HibernateTransactionManager(sessionFactory(dataSource()).getObject());
+  public HibernateTransactionManager transactionManager(SessionFactory sessionFactory) {
+    return new HibernateTransactionManager(sessionFactory);
   }
 
   private Properties hibernateProperties() {

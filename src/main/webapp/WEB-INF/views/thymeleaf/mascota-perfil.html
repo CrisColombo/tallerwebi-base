@@ -174,14 +174,13 @@
 
 
         <form
+          id="form-pago"
           th:action="@{/mascotas/{id}/pagar-plan(id=${mascota.id})}"
           method="POST"
           class="mt-4"
         >
-          <label for="planIdPago" class="form-label"
-            >Pagar, renovar o cambiar de plan</label
-          >
-          <div class="d-flex flex-wrap gap-2">
+          <label for="planIdPago" class="form-label">Pagar, renovar o cambiar de plan</label>
+          <div class="d-flex flex-wrap gap-2 align-items-start">
             <select
               id="planIdPago"
               name="planId"
@@ -190,23 +189,30 @@
               required
             >
               <option
-                th:each="p : ${planes}"
-                th:value="${p.id}"
-                th:text="${p.nombre} + ' — $' + ${#numbers.formatDecimal(p.precio, 1, 'POINT', 0,
-            'COMMA')}"
-                th:selected="${mascota.plan != null and mascota.plan.id == p.id}"
+                th:each="c : ${cotizaciones}"
+                th:value="${c.plan.id}"
+                th:text="${c.plan.nombre} + ' — $' + ${#numbers.formatDecimal(c.plan.precio, 1, 'POINT', 0, 'COMMA')}"
+                th:selected="${mascota.plan != null and mascota.plan.id == c.plan.id}"
+                th:attr="data-accion=${c.tipo.name()}, data-detalle=${c.detalle}, data-boton=${c.textoBoton}"
               ></option>
             </select>
-            <button
-              id="btn-pagar-plan"
-              type="submit"
-              class="btn btn-success"
-              th:attr="data-plan-actual=${mascota.plan != null ? mascota.plan.id : ''}, data-al-dia=${mascota.suscripcionAlDia()}"
-              th:text="${mascota.suscripcionAlDia()} ? 'Renovar un mes' : 'Pagar con Mercado Pago'"
-            >
+            <button id="btn-pagar-plan" type="submit" class="btn btn-success">
               Pagar con Mercado Pago
             </button>
           </div>
+          <p id="detalle-pago" class="form-text mb-0"></p>
+        </form>
+
+        <form
+          id="form-baja-nivel"
+          th:action="@{/mascotas/{id}/cambiar-plan(id=${mascota.id})}"
+          method="POST"
+          class="d-none mt-2"
+        >
+          <input id="planIdBaja" type="hidden" name="planId" />
+          <button id="btn-baja-nivel" type="submit" class="btn btn-outline-primary">
+            Bajar de plan
+          </button>
         </form>
 
         <form
@@ -420,20 +426,23 @@
       (function () {
         var select = document.getElementById("planIdPago");
         var boton = document.getElementById("btn-pagar-plan");
-        if (!select || !boton) return;
+        var detalle = document.getElementById("detalle-pago");
+        var formBaja = document.getElementById("form-baja-nivel");
+        var planBaja = document.getElementById("planIdBaja");
+        var botonBaja = document.getElementById("btn-baja-nivel");
+        if (!select || !boton || !detalle) return;
         var actualizar = function () {
-          var alDia = boton.getAttribute("data-al-dia") === "true";
-          var actual = boton.getAttribute("data-plan-actual") || "";
-          var mismo = actual !== "" && select.value === String(actual);
-          if (alDia && mismo) {
-            boton.textContent = "Renovar un mes";
-            return;
-          }
-          if (actual !== "" && !mismo) {
-            boton.textContent = "Pagar y cambiar de plan";
-            return;
-          }
-          boton.textContent = "Pagar con Mercado Pago";
+          var opcion = select.options[select.selectedIndex];
+          if (!opcion) return;
+          var accion = opcion.getAttribute("data-accion");
+          var esBaja = accion === "BAJA";
+          detalle.textContent = opcion.getAttribute("data-detalle") || "";
+          boton.textContent = opcion.getAttribute("data-boton") || "Pagar con Mercado Pago";
+          boton.disabled = accion === "BLOQUEADO" || esBaja;
+          boton.classList.toggle("d-none", esBaja);
+          if (formBaja) formBaja.classList.toggle("d-none", !esBaja);
+          if (esBaja && planBaja) planBaja.value = select.value;
+          if (esBaja && botonBaja) botonBaja.textContent = opcion.getAttribute("data-boton");
         };
         select.addEventListener("change", actualizar);
         actualizar();

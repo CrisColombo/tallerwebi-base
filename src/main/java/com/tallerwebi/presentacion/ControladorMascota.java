@@ -7,6 +7,9 @@ import com.tallerwebi.dominio.excepcion.TurnoInvalido;
 import jakarta.servlet.http.HttpSession;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -102,7 +105,7 @@ public class ControladorMascota extends ControladorConSocio {
     }
     Map<String, Object> modelo = new ModelMap();
     modelo.put("mascota", mascota);
-    modelo.put("planes", servicioPlan.listar());
+    modelo.put("cotizaciones", cotizarPlanes(mascota));
     try {
       modelo.put("historial", servicioTurno.historialDe(socio, id));
       modelo.put("recetas", servicioReceta.recetasDe(socio, id));
@@ -150,5 +153,13 @@ public class ControladorMascota extends ControladorConSocio {
 
   private ModelAndView redirectMascota(Long id) {
     return new ModelAndView(REDIRECT_MASCOTA + id);
+  }
+
+  private List<CotizacionSuscripcion> cotizarPlanes(Mascota mascota) {
+    List<CotizacionSuscripcion> cotizaciones = new ArrayList<>();
+    for (Plan plan : servicioPlan.listar()) {
+      cotizaciones.add(CotizacionSuscripcion.cotizar(mascota, plan, LocalDate.now()));
+    }
+    return cotizaciones;
   }
 }

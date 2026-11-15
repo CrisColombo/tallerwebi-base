@@ -3,6 +3,7 @@ package com.tallerwebi.dominio;
 import com.tallerwebi.dominio.excepcion.PagoRechazado;
 import com.tallerwebi.infraestructura.ClienteMercadoPago;
 import jakarta.transaction.Transactional;
+import java.time.LocalDate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -35,9 +36,26 @@ public class ServicioPagoImpl implements ServicioPago {
     if (plan == null || plan.getPrecio() == null) {
       throw new PagoRechazado("Plan inválido");
     }
-    String referencia = ReferenciaPagoMascota.armar(mascotaId, planId);
+    CotizacionSuscripcion cotizacion = CotizacionSuscripcion.cotizar(
+      mascota,
+      plan,
+      LocalDate.now()
+    );
+    if (!cotizacion.permitePagar()) {
+      throw new PagoRechazado(mensajeSiNoSePuedePagar(cotizacion));
+    }
+    String referencia = cotizacion.esUpgrade()
+      ? ReferenciaPagoMascota.armarUpgrade(mascotaId, planId)
+      : ReferenciaPagoMascota.armar(mascotaId, planId);
     String titulo = plan.getNombre() + " - " + mascota.getNombre();
-    return clienteMercadoPago.crearPreferencia(titulo, plan.getPrecio(), referencia);
+    return clienteMercadoPago.crearPreferencia(titulo, cotizacion.getImporte(), referencia);
+  }
+
+  private static String mensajeSiNoSePuedePagar(CotizacionSuscripcion cotizacion) {
+    if (cotizacion.esBaja()) {
+      return "Para bajar de plan no hace falta pagar";
+    }
+    return cotizacion.getDetalle();
   }
 
   @Override
@@ -47,7 +65,13 @@ public class ServicioPagoImpl implements ServicioPago {
     Long mascotaId = ReferenciaPagoMascota.mascotaIdDe(referenciaExterna);
     Long planId = ReferenciaPagoMascota.planIdDe(referenciaExterna);
     exigirReferencia(mascotaId, planId);
-    activarSuscripcion(socio, mascotaId, planId, paymentId);
+    activarSuscripcion(
+      socio,
+      mascotaId,
+      planId,
+      paymentId,
+      ReferenciaPagoMascota.esUpgrade(referenciaExterna)
+    );
   }
 
   private void exigirPagoAprobado(String paymentId) throws PagoRechazado {
@@ -63,14 +87,19 @@ public class ServicioPagoImpl implements ServicioPago {
     }
   }
 
-  private void activarSuscripcion(Socio socio, Long mascotaId, Long planId, String paymentId)
-    throws PagoRechazado {
+  private void activarSuscripcion(
+    Socio socio,
+    Long mascotaId,
+    Long planId,
+    String paymentId,
+    boolean upgrade
+  ) throws PagoRechazado {
     servicioMascota.cambiarPlan(socio, mascotaId, planId);
     Mascota mascota = servicioMascota.buscarPorId(mascotaId);
     if (mascota == null) {
       throw new PagoRechazado("No encontramos esa mascota");
     }
-    if (paymentId.equals(mascota.getUltimoPagoMercadoPago())) {
+    if (upgrade || paymentId.equals(mascota.getUltimoPagoMercadoPago())) {
       return;
     }
     mascota.renovarUnMes(paymentId);

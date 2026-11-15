@@ -97,6 +97,7 @@ public class SpringWebTestConfig implements WebMvcConfigurer {
   public ClienteGemini clienteGemini() {
     ClienteGemini gemini = mock(ClienteGemini.class);
     when(gemini.completar(any(), anyString())).thenReturn("Respuesta de prueba.");
+    when(gemini.completarConInstruccion(anyString(), anyString())).thenReturn("NO");
     return gemini;
   }
 
