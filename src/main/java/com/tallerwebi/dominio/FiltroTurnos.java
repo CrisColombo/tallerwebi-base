@@ -24,6 +24,8 @@ public class FiltroTurnos {
   public static final String ATENDIDOS = "atendidos";
   public static final String CANCELADOS = "cancelados";
   public static final String TODOS = "todos";
+  public static final String ASC = "asc";
+  public static final String DESC = "desc";
   private static final List<String> VISTAS = List.of(PROXIMOS, ATENDIDOS, CANCELADOS, TODOS);
 
   private String vista = PROXIMOS;
@@ -40,6 +42,7 @@ public class FiltroTurnos {
 
   private boolean sinResena;
   private String texto;
+  private String orden;
 
   /** Aplica la pestaña y los filtros, y ordena: los próximos del más cercano al más lejano. */
   public List<Turno> aplicar(
@@ -52,7 +55,7 @@ public class FiltroTurnos {
       .stream()
       .filter(t -> enVista(t, getVista(), ahora))
       .filter(t -> cumpleFiltros(t, tieneResena))
-      .sorted(PROXIMOS.equals(getVista()) ? porMomento : porMomento.reversed())
+      .sorted(ASC.equals(getOrden()) ? porMomento : porMomento.reversed())
       .collect(Collectors.toList());
   }
 
@@ -201,5 +204,17 @@ public class FiltroTurnos {
 
   public void setTexto(String texto) {
     this.texto = texto;
+  }
+
+  /** El orden elegido, o el natural de la pestaña si no se eligió ninguno válido. */
+  public String getOrden() {
+    if (ASC.equals(orden) || DESC.equals(orden)) {
+      return orden;
+    }
+    return PROXIMOS.equals(getVista()) ? ASC : DESC;
+  }
+
+  public void setOrden(String orden) {
+    this.orden = orden;
   }
 }

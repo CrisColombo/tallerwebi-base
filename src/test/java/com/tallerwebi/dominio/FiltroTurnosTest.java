@@ -73,6 +73,28 @@ public class FiltroTurnosTest {
   }
 
   @Test
+  public void deberiaPoderOrdenarLosAtendidosDelMasViejoAlMasNuevo() {
+    Turno viejo = dadoUnTurno(michi, sanJusto, consulta, HOY.minusDays(40), EstadoTurno.FINALIZADO);
+    Turno nuevo = dadoUnTurno(michi, sanJusto, consulta, HOY.minusDays(2), EstadoTurno.FINALIZADO);
+    filtro.setVista(FiltroTurnos.ATENDIDOS);
+    filtro.setOrden(FiltroTurnos.ASC);
+
+    assertThat(
+      filtro.aplicar(List.of(nuevo, viejo), AHORA, NINGUNO_RESENADO),
+      contains(viejo, nuevo)
+    );
+  }
+
+  @Test
+  public void unOrdenDesconocidoDeberiaUsarElDeLaPestana() {
+    filtro.setOrden("cualquiera");
+
+    assertThat(filtro.getOrden(), is(FiltroTurnos.ASC));
+    filtro.setVista(FiltroTurnos.ATENDIDOS);
+    assertThat(filtro.getOrden(), is(FiltroTurnos.DESC));
+  }
+
+  @Test
   public void deberiaFiltrarPorMascotaEspecieVeterinariaYServicio() {
     Turno buscado = dadoUnTurno(michi, sanJusto, consulta, HOY.plusDays(1), EstadoTurno.CONFIRMADO);
     Turno otraMascota = dadoUnTurno(

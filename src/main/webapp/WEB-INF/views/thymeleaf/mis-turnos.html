@@ -81,6 +81,13 @@
             <label for="f-hasta" class="form-label">Hasta</label>
             <input id="f-hasta" type="date" name="hasta" class="form-control form-control-sm" th:value="${filtro.hasta}" />
           </div>
+          <div class="mp-filtros__grupo">
+            <label for="f-orden" class="form-label">Ordenar por fecha</label>
+            <select id="f-orden" name="orden" class="form-select form-select-sm" onchange="this.form.submit()">
+              <option value="desc" th:selected="${filtro.orden == 'desc'}">Más nueva primero</option>
+              <option value="asc" th:selected="${filtro.orden == 'asc'}">Más vieja primero</option>
+            </select>
+          </div>
         </div>
 
         <div class="mp-filtros__fila mp-filtros__fila--pie">
