@@ -145,4 +145,72 @@ public class ServicioMascotaTest {
     );
     verifyNoInteractions(repositorioSocio);
   }
+
+  @Test
+  public void agregarMascotaSinSocioIdentificadoDeberiaRechazarla() {
+    DatosDeRegistroInvalidos error = assertThrows(
+      DatosDeRegistroInvalidos.class,
+      () -> servicioMascota.agregarMascota(null, mascota, 2L)
+    );
+
+    assertThat(error.getMessage(), equalTo("No se pudo identificar al socio"));
+  }
+
+  @Test
+  public void agregarMascotaSiElSocioNoEstaEnLaBaseDeberiaRechazarla() {
+    when(repositorioSocio.buscarPorUsuario(1L)).thenReturn(null);
+
+    DatosDeRegistroInvalidos error = assertThrows(
+      DatosDeRegistroInvalidos.class,
+      () -> servicioMascota.agregarMascota(socio, mascota, 2L)
+    );
+
+    assertThat(error.getMessage(), equalTo("No se pudo identificar al socio"));
+  }
+
+  @Test
+  public void buscarPorIdNuloDeberiaDevolverNull() {
+    assertThat(servicioMascota.buscarPorId(null), equalTo(null));
+  }
+
+  @Test
+  public void cambiarPlanDeUnaMascotaAjenaNoDeberiaTocarNada() {
+    servicioMascota.cambiarPlan(null, 1L, 2L);
+
+    verify(repositorioMascota, never()).buscarPorId(any());
+  }
+
+  @Test
+  public void cambiarPlanConUnPlanInexistenteNoDeberiaAsignarlo() {
+    Socio socioLocal = new Socio();
+    Mascota mascotaLocal = new Mascota();
+    mascotaLocal.setId(1L);
+    socioLocal.agregarMascota(mascotaLocal);
+    when(repositorioMascota.buscarPorId(1L)).thenReturn(mascotaLocal);
+    when(repositorioPlan.buscarPorId(9L)).thenReturn(null);
+
+    servicioMascota.cambiarPlan(socioLocal, 1L, 9L);
+
+    assertThat(mascotaLocal.getPlan(), equalTo(null));
+  }
+
+  @Test
+  public void darDeBajaDeUnaMascotaAjenaNoDeberiaTocarNada() {
+    servicioMascota.darDeBaja(new Socio(), 1L);
+
+    verify(repositorioMascota, never()).buscarPorId(any());
+  }
+
+  @Test
+  public void darDeBajaSiLaMascotaYaNoExisteNoDeberiaFallar() {
+    Socio socioLocal = new Socio();
+    Mascota mascotaLocal = new Mascota();
+    mascotaLocal.setId(1L);
+    socioLocal.agregarMascota(mascotaLocal);
+    when(repositorioMascota.buscarPorId(1L)).thenReturn(null);
+
+    servicioMascota.darDeBaja(socioLocal, 1L);
+
+    assertThat(mascotaLocal.getPlan(), equalTo(null));
+  }
 }

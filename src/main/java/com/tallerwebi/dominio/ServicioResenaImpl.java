@@ -22,11 +22,17 @@ public class ServicioResenaImpl implements ServicioResena {
 
   private final RepositorioResena repositorioResena;
   private final ServicioTurno servicioTurno;
+  private final MediControl mediControl;
 
   @Autowired
-  public ServicioResenaImpl(RepositorioResena repositorioResena, ServicioTurno servicioTurno) {
+  public ServicioResenaImpl(
+    RepositorioResena repositorioResena,
+    ServicioTurno servicioTurno,
+    MediControl mediControl
+  ) {
     this.repositorioResena = repositorioResena;
     this.servicioTurno = servicioTurno;
+    this.mediControl = mediControl;
   }
 
   @Override
@@ -107,9 +113,15 @@ public class ServicioResenaImpl implements ServicioResena {
     resena.setVeterinaria(turno.getVeterinaria());
     resena.setSocio(socio);
     resena.setPuntuacion(puntuacion);
-    resena.setComentario(comentario.trim());
+    resena.setComentario(comentarioParaGuardar(comentario));
     resena.setCreadoEn(LocalDateTime.now());
     return resena;
+  }
+
+  private String comentarioParaGuardar(String comentario) {
+    String texto = comentario.trim();
+    if (mediControl.debeCensurar(texto)) return MediControl.COMENTARIO_OCULTO;
+    return texto;
   }
 
   private ResumenResenas armarResumen(List<Resena> todas) {

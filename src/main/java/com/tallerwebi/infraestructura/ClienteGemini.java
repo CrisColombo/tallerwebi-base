@@ -65,6 +65,25 @@ public class ClienteGemini {
     return response.text();
   }
 
+  public String completarConInstruccion(String instruccion, String mensaje) {
+    GenerateContentConfig configPropia = GenerateContentConfig
+      .builder()
+      .systemInstruction(Content.fromParts(Part.fromText(instruccion)))
+      .maxOutputTokens(32)
+      .build();
+    Content consulta = Content
+      .builder()
+      .role("user")
+      .parts(List.of(Part.fromText(mensaje)))
+      .build();
+    GenerateContentResponse response = client.models.generateContent(
+      MODELO,
+      List.of(consulta),
+      configPropia
+    );
+    return response.text();
+  }
+
   private static String obtenerApiKeyPrivada() {
     String key = System.getenv("GEMINI_API_KEY");
 

@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -115,7 +116,11 @@ public class ControladorTurno extends ControladorConSocio {
     Function<T, Long> id
   ) {
     Map<Long, T> unicos = new LinkedHashMap<>();
-    turnos.stream().map(extraer).forEach(e -> unicos.putIfAbsent(id.apply(e), e));
+    turnos
+      .stream()
+      .map(extraer)
+      .filter(Objects::nonNull)
+      .forEach(e -> unicos.putIfAbsent(id.apply(e), e));
     return new ArrayList<>(unicos.values());
   }
 

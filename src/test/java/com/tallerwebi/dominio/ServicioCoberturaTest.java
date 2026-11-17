@@ -91,6 +91,27 @@ public class ServicioCoberturaTest {
     assertThat(items.get(0).isIncluido(), is(false));
   }
 
+  @Test
+  public void sinFiltroDeberiaMostrarTodosLosServicios() {
+    assertThat(servicioCobertura.coberturaDe(conPlanBasico, null), hasSize(2));
+  }
+
+  @Test
+  public void coberturaEnSinVeterinariaDeberiaEstarVacia() {
+    assertThat(servicioCobertura.coberturaEn(null, conPlanBasico), hasSize(0));
+  }
+
+  @Test
+  public void coberturaEnSinMascotaNoDeberiaMarcarNingunServicioIncluido() {
+    Veterinaria veterinaria = new Veterinaria();
+    veterinaria.getServicios().add(consulta);
+
+    List<ItemCobertura> items = servicioCobertura.coberturaEn(veterinaria, null);
+
+    assertThat(items, hasSize(1));
+    assertThat(items.get(0).isIncluido(), is(false));
+  }
+
   private List<Servicio> servicios(List<ItemCobertura> items) {
     return items.stream().map(ItemCobertura::getServicio).collect(Collectors.toList());
   }

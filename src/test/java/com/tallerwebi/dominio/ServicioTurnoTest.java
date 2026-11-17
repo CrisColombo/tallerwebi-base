@@ -770,4 +770,81 @@ public class ServicioTurnoTest {
 
     assertThat(historial, contains(actual, anterior));
   }
+
+  @Test
+  public void reservarSinVeterinariaNiServicioDeberiaFallar() {
+    when(repositorioVeterinariaMock.buscarPorId(10L)).thenReturn(null);
+    when(repositorioServicioMock.buscarPorId(1L)).thenReturn(null);
+
+    TurnoInvalido error = assertThrows(
+      TurnoInvalido.class,
+      () -> servicioTurno.reservar(socio, dadaUnaSolicitud(1L, JUEVES, DIEZ))
+    );
+
+    assertThat(error.getMessage(), equalTo("Elegí una veterinaria y un servicio"));
+  }
+
+  @Test
+  public void cancelarPorVeterinariaUnTurnoYaCanceladoDeberiaFallar() {
+    Turno turno = dadoUnTurnoDe(firulais);
+    turno.setVeterinaria(veterinaria);
+    turno.cancelar();
+    when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
+
+    TurnoInvalido error = assertThrows(
+      TurnoInvalido.class,
+      () -> servicioTurno.cancelarPorVeterinaria(veterinaria, 5L)
+    );
+
+    assertThat(error.getMessage(), equalTo("Solo se pueden cancelar turnos confirmados"));
+  }
+
+  @Test
+  public void reprogramarPorVeterinariaUnTurnoCanceladoDeberiaFallar() {
+    Turno turno = dadoUnTurno(JUEVES, DIEZ, EstadoTurno.CANCELADO);
+    turno.setVeterinaria(veterinaria);
+    when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
+
+    TurnoInvalido error = assertThrows(
+      TurnoInvalido.class,
+      () -> servicioTurno.reprogramarPorVeterinaria(veterinaria, 5L, JUEVES.plusDays(1), DIEZ)
+    );
+
+    assertThat(error.getMessage(), equalTo("Solo se pueden reprogramar turnos confirmados"));
+  }
+
+  @Test
+  public void finalizarTurnoDeberiaDejarFinalizadoUnTurnoConfirmado() throws TurnoInvalido {
+    Turno turno = dadoUnTurnoDe(firulais);
+    turno.setVeterinaria(veterinaria);
+    when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
+
+    servicioTurno.finalizarTurno(veterinaria, 5L);
+
+    assertThat(turno.getEstado(), is(EstadoTurno.FINALIZADO));
+  }
+
+  @Test
+  public void finalizarTurnoDeUnTurnoCanceladoDeberiaFallar() {
+    Turno turno = dadoUnTurnoDe(firulais);
+    turno.setVeterinaria(veterinaria);
+    turno.cancelar();
+    when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
+
+    TurnoInvalido error = assertThrows(
+      TurnoInvalido.class,
+      () -> servicioTurno.finalizarTurno(veterinaria, 5L)
+    );
+
+    assertThat(error.getMessage(), equalTo("Solo se pueden finalizar turnos confirmados"));
+  }
+
+  @Test
+  public void reservarSinEmailNoDeberiaIntentarEnviarElMail() throws TurnoInvalido {
+    socio.getUsuario().setEmail("  ");
+
+    servicioTurno.reservar(socio, dadaUnaSolicitud(1L, JUEVES, DIEZ));
+
+    verify(servicioNotificacionMock, never()).enviarConfirmacionTurno(any(), any());
+  }
 }

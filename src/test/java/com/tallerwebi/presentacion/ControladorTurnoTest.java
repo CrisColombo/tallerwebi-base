@@ -13,7 +13,6 @@ import java.time.LocalTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.ui.Model;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributesModelMap;
 
@@ -22,24 +21,24 @@ public class ControladorTurnoTest {
   private ControladorTurno controladorTurno;
   private ServicioSocio servicioSocioMock;
   private ServicioTurno servicioTurnoMock;
+  private ServicioResena servicioResena;
   private HttpSession sesionMock;
   private Socio socio;
   private SolicitudTurno solicitud;
   private RedirectAttributesModelMap redirectAttributes;
-  private ServicioResena servicioResenaMock;
 
   @BeforeEach
   public void init() {
     servicioSocioMock = mock(ServicioSocio.class);
     servicioTurnoMock = mock(ServicioTurno.class);
-    servicioResenaMock = mock(ServicioResena.class);
+    servicioResena = mock(ServicioResena.class);
     controladorTurno =
       new ControladorTurno(
         servicioSocioMock,
         servicioTurnoMock,
         mock(ServicioVeterinaria.class),
         mock(ServicioCobertura.class),
-        servicioResenaMock
+        servicioResena
       );
 
     sesionMock = mock(HttpSession.class);
@@ -127,16 +126,6 @@ public class ControladorTurnoTest {
     assertThat(mav.getModel().get("turnos"), is(List.of(atendido)));
     assertThat(mav.getModel().get("veterinarias"), is(List.of(veterinaria)));
     assertThat(mav.getModel().get("servicios"), is(List.of(servicio)));
-  }
-
-  @Test
-  public void misTurnosSinSerSocioDeberiaVolverAlHome() {
-    when(servicioSocioMock.buscarPorUsuario(2L)).thenReturn(null);
-
-    assertThat(
-      controladorTurno.misTurnos(new FiltroTurnos(), sesionMock).getViewName(),
-      equalTo("redirect:/home")
-    );
   }
 
   @Test
@@ -246,5 +235,92 @@ public class ControladorTurnoTest {
     assertThat(mav.getModel().get("turno"), is(turno));
     assertThat(mav.getModel().get("horarios"), is(horarios));
     assertThat(mav.getModel().get("fecha"), is(fecha));
+  }
+
+  @Test
+  public void reservarSinSerSocioDeberiaVolverAlHome() throws TurnoInvalido {
+    when(servicioSocioMock.buscarPorUsuario(2L)).thenReturn(null);
+
+    ModelAndView mav = controladorTurno.reservar(solicitud, sesionMock, redirectAttributes);
+
+    assertThat(mav.getViewName(), equalTo("redirect:/home"));
+    verify(servicioTurnoMock, never()).reservar(any(), any());
+  }
+
+  @Test
+  public void misTurnosSinSerSocioDeberiaVolverAlHome() {
+    when(servicioSocioMock.buscarPorUsuario(2L)).thenReturn(null);
+
+    ModelAndView mav = controladorTurno.misTurnos(new FiltroTurnos(), sesionMock);
+
+    assertThat(mav.getViewName(), equalTo("redirect:/home"));
+  }
+
+  @Test
+  public void cancelarSinSerSocioDeberiaVolverAlHome() throws TurnoInvalido {
+    when(servicioSocioMock.buscarPorUsuario(2L)).thenReturn(null);
+
+    ModelAndView mav = controladorTurno.cancelar(5L, sesionMock, redirectAttributes);
+
+    assertThat(mav.getViewName(), equalTo("redirect:/home"));
+    verify(servicioTurnoMock, never()).cancelar(any(), any());
+  }
+
+  @Test
+  public void formularioReprogramarSinSerSocioDeberiaVolverAlHome() {
+    when(servicioSocioMock.buscarPorUsuario(2L)).thenReturn(null);
+
+    ModelAndView mav = controladorTurno.formularioReprogramar(
+      5L,
+      LocalDate.of(2026, 10, 2),
+      sesionMock,
+      redirectAttributes
+    );
+
+    assertThat(mav.getViewName(), equalTo("redirect:/home"));
+  }
+
+  @Test
+  public void formularioReprogramarDeUnTurnoInvalidoDeberiaVolverAMisTurnos() throws TurnoInvalido {
+    when(servicioTurnoMock.buscarTurnoDe(socio, 5L))
+      .thenThrow(new TurnoInvalido("No encontramos ese turno"));
+
+    ModelAndView mav = controladorTurno.formularioReprogramar(
+      5L,
+      LocalDate.of(2026, 10, 2),
+      sesionMock,
+      redirectAttributes
+    );
+
+    assertThat(mav.getViewName(), equalTo("redirect:/turnos"));
+    assertThat(
+      redirectAttributes.getFlashAttributes().get("error"),
+      equalTo("No encontramos ese turno")
+    );
+  }
+
+  @Test
+  public void misTurnosDeberiaMarcarSiElSocioYaResenoUnTurnoFinalizado() {
+    Turno finalizado = new Turno();
+    finalizado.setId(8L);
+    finalizado.finalizar();
+    when(servicioTurnoMock.turnosDe(socio)).thenReturn(List.of(finalizado));
+    when(servicioResena.socioYaReseno(8L)).thenReturn(true);
+
+    ModelAndView mav = controladorTurno.misTurnos(new FiltroTurnos(), sesionMock);
+
+    assertThat(mav.getModel().get("resenasPorTurno"), equalTo(java.util.Map.of(8L, true)));
+  }
+
+  @Test
+  public void nuevoTurnoDeUnaMascotaSinPlanVigenteDeberiaAvisarlo() {
+    Mascota luna = new Mascota();
+    luna.setId(3L);
+    socio.agregarMascota(luna);
+    solicitud.setMascotaId(3L);
+
+    ModelAndView mav = controladorTurno.nuevoTurno(solicitud, sesionMock);
+
+    assertThat(mav.getModel().get("sinPlanVigente"), equalTo(true));
   }
 }

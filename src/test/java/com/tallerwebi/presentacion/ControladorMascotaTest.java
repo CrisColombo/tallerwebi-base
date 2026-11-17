@@ -226,4 +226,49 @@ public class ControladorMascotaTest {
     assertThat(mav.getViewName(), equalTo("redirect:/home"));
     verifyNoInteractions(servicioReceta);
   }
+
+  @Test
+  public void nuevaMascotaSinSerSocioDeberiaVolverAlHome() {
+    when(servicioSocio.buscarPorUsuario(1L)).thenReturn(null);
+
+    ModelAndView mav = controladorMascota.nuevaMascota(sesion);
+
+    assertThat(mav.getViewName(), equalTo("redirect:/home"));
+  }
+
+  @Test
+  public void agregarMascotaSinSerSocioDeberiaVolverAlHome() throws Exception {
+    when(servicioSocio.buscarPorUsuario(1L)).thenReturn(null);
+
+    ModelAndView mav = controladorMascota.agregarMascota(mascota, 2L, sesion);
+
+    assertThat(mav.getViewName(), equalTo("redirect:/home"));
+    verify(servicioMascota, never()).agregarMascota(any(), any(), any());
+  }
+
+  @Test
+  public void verPerfilSiElHistorialFallaDeberiaVolverAlHome() throws TurnoInvalido {
+    when(servicioTurno.historialDe(socio, 1L))
+      .thenThrow(new TurnoInvalido("No encontramos esa mascota"));
+
+    ModelAndView mav = controladorMascota.verPerfil(1L, sesion);
+
+    assertThat(mav.getViewName(), equalTo("redirect:/home"));
+  }
+
+  @Test
+  public void cambiarPlanDeberiaGuardarElPlanYVolverAlPerfil() {
+    ModelAndView mav = controladorMascota.cambiarPlan(1L, 2L, sesion);
+
+    verify(servicioMascota).cambiarPlan(socio, 1L, 2L);
+    assertThat(mav.getViewName(), equalTo("redirect:/mascotas/1"));
+  }
+
+  @Test
+  public void darDeBajaDeberiaQuitarElPlanYVolverAlPerfil() {
+    ModelAndView mav = controladorMascota.darDeBaja(1L, sesion);
+
+    verify(servicioMascota).darDeBaja(socio, 1L);
+    assertThat(mav.getViewName(), equalTo("redirect:/mascotas/1"));
+  }
 }
