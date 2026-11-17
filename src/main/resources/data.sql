@@ -114,3 +114,77 @@ INSERT IGNORE INTO Turno(id, fecha, hora, estado, recordatorioEnviado, mascota_i
 (104, '2026-06-15', '15:00:00', 'FINALIZADO', 1, 1, 1, 12, 25000),
 (105, '2026-09-02', '09:30:00', 'FINALIZADO', 1, 1, 1, 13, 400000),
 (106, '2026-10-28', '16:00:00', 'FINALIZADO', 1, 1, 1, 10, 18000);
+
+-- =====================================================================
+-- Datos de prueba de la rama prueba/ui-masfacil (todo inventado).
+-- Las fechas se calculan desde el día en que se cargan, así siempre hay
+-- turnos de hoy, próximos y pasados. Para volver a calcularlas, recrear la base.
+-- recordatorioEnviado = 1 para no mandar mails a direcciones que no existen.
+-- =====================================================================
+
+-- Planes al día: Firulais vence en 4 días (aparece como "por vencer"), Michi y Rocco más adelante.
+UPDATE Mascota SET venceSuscripcion = CURDATE() + INTERVAL 4 DAY, ultimoPagoMercadoPago = 'demo-1' WHERE id = 1 AND venceSuscripcion IS NULL;
+UPDATE Mascota SET venceSuscripcion = CURDATE() + INTERVAL 23 DAY, ultimoPagoMercadoPago = 'demo-2' WHERE id = 2 AND venceSuscripcion IS NULL;
+
+-- Tercera mascota de Lucía, para que el filtro por especie tenga sentido
+INSERT IGNORE INTO Mascota(id, nombre, especie, raza, fechaNacimiento, peso, socio_id, plan_id, venceSuscripcion, ultimoPagoMercadoPago) VALUES
+(3, 'Rocco', 'PERRO', 'Labrador', '2023-02-14', 24.0, 1, 2, CURDATE() + INTERVAL 15 DAY, 'demo-3');
+
+-- Otros socios (contraseña 1234) con mascotas que se atienden en San Justo
+INSERT IGNORE INTO Usuario(id, email, password, rol, activo) VALUES
+(4, 'martin@medipet.com', '$2a$10$aOHU3dE4FX55d2HMTvXS2Oqrp1phohqusFMmt0R1j6X4w2eK.wzO.', 'SOCIO', true),
+(5, 'carla@medipet.com', '$2a$10$aOHU3dE4FX55d2HMTvXS2Oqrp1phohqusFMmt0R1j6X4w2eK.wzO.', 'SOCIO', true),
+(6, 'diego@medipet.com', '$2a$10$aOHU3dE4FX55d2HMTvXS2Oqrp1phohqusFMmt0R1j6X4w2eK.wzO.', 'SOCIO', true);
+INSERT IGNORE INTO Socio(id, nombre, apellido, dni, telefono, usuario_id) VALUES
+(2, 'Martín', 'Ruiz', '30222333', '1144443333', 4),
+(3, 'Carla', 'Benítez', '33444555', '1166667777', 5),
+(4, 'Diego', 'Ferrari', '28999888', '1122221111', 6);
+INSERT IGNORE INTO Mascota(id, nombre, especie, raza, fechaNacimiento, peso, socio_id, plan_id, venceSuscripcion, ultimoPagoMercadoPago) VALUES
+(4, 'Toby', 'PERRO', 'Beagle', '2020-06-01', 12.3, 2, 1, CURDATE() + INTERVAL 20 DAY, 'demo-4'),
+(5, 'Mora', 'GATO', 'Europeo', '2023-03-10', 3.8, 3, 2, CURDATE() + INTERVAL 20 DAY, 'demo-5'),
+(6, 'Nala', 'GATO', 'Persa', '2018-11-30', 4.6, 3, 1, CURDATE() + INTERVAL 20 DAY, 'demo-6'),
+(7, 'Coco', 'PERRO', 'Caniche', '2021-09-05', 6.1, 4, 1, CURDATE() + INTERVAL 20 DAY, 'demo-7');
+
+-- Turnos de Lucía: próximos, atendidos con devolución, y cancelados
+INSERT IGNORE INTO Turno(id, fecha, hora, estado, recordatorioEnviado, mascota_id, veterinaria_id, servicio_id, observacionesProfesional) VALUES
+(201, CURDATE() + INTERVAL 2 DAY, '10:00:00', 'CONFIRMADO', 1, 2, 1, 7, NULL),
+(202, CURDATE() + INTERVAL 7 DAY, '16:30:00', 'CONFIRMADO', 1, 1, 1, 2, NULL),
+(203, CURDATE() + INTERVAL 15 DAY, '11:00:00', 'CONFIRMADO', 1, 3, 4, 10, NULL),
+(204, CURDATE() - INTERVAL 7 DAY, '19:30:00', 'FINALIZADO', 1, 2, 1, 1, 'Otitis leve en el oído derecho. Limpiar con solución ótica y volver a control en 15 días.'),
+(205, CURDATE() - INTERVAL 43 DAY, '10:00:00', 'FINALIZADO', 1, 2, 8, 8, 'Auscultación normal, sin soplos. No necesita tratamiento.'),
+(206, CURDATE() - INTERVAL 33 DAY, '18:00:00', 'CANCELADO', 1, 1, 1, 5, NULL),
+(207, CURDATE() - INTERVAL 52 DAY, '15:00:00', 'FINALIZADO', 1, 3, 2, 4, 'Pesa 24 kg, buen estado general. Desparasitar en 3 meses.'),
+(208, CURDATE() - INTERVAL 84 DAY, '12:00:00', 'CANCELADO', 1, 2, 4, 12, NULL);
+
+-- Agenda de hoy en San Justo (vet@medipet.com) y dos turnos de días anteriores sin cerrar
+INSERT IGNORE INTO Turno(id, fecha, hora, estado, recordatorioEnviado, mascota_id, veterinaria_id, servicio_id, observacionesProfesional) VALUES
+(211, CURDATE(), '09:30:00', 'FINALIZADO', 1, 4, 1, 2, 'Séxtuple aplicada. Próxima dosis en un año.'),
+(212, CURDATE(), '11:30:00', 'CONFIRMADO', 1, 5, 1, 1, NULL),
+(213, CURDATE(), '16:30:00', 'CONFIRMADO', 1, 7, 1, 3, NULL),
+(214, CURDATE(), '18:00:00', 'CONFIRMADO', 1, 6, 1, 6, NULL),
+(215, CURDATE() + INTERVAL 1 DAY, '10:00:00', 'CONFIRMADO', 1, 5, 1, 7, NULL),
+(216, CURDATE() - INTERVAL 2 DAY, '10:00:00', 'CONFIRMADO', 1, 7, 1, 1, NULL),
+(217, CURDATE() - INTERVAL 1 DAY, '17:00:00', 'CONFIRMADO', 1, 4, 1, 5, NULL),
+-- Historia de Mora en otras clínicas, para ver la medicación anterior al atenderla
+(218, CURDATE() - INTERVAL 25 DAY, '10:00:00', 'FINALIZADO', 1, 5, 8, 9, 'Esguince leve en la pata delantera izquierda. Reposo y antiinflamatorio.'),
+(219, CURDATE() - INTERVAL 70 DAY, '12:30:00', 'FINALIZADO', 1, 5, 3, 3, 'Desparasitación interna. Repetir en 3 meses.');
+
+-- Observaciones para los turnos viejos de Firulais que usa el simulador
+UPDATE Turno SET observacionesProfesional = 'Control de rutina, todo en orden.' WHERE id IN (101, 103) AND observacionesProfesional IS NULL;
+UPDATE Turno SET observacionesProfesional = 'Radiografía de cadera: displasia leve. Control en 6 meses.' WHERE id = 104 AND observacionesProfesional IS NULL;
+UPDATE Turno SET observacionesProfesional = 'Cirugía de cadera sin complicaciones. Reposo de dos semanas.' WHERE id = 105 AND observacionesProfesional IS NULL;
+
+-- Recetas: una pendiente de compra y el resto compradas
+INSERT IGNORE INTO Receta(id, turno_id, medicamento, indicaciones, estado, fechaCompra) VALUES
+(301, 204, 'Otomax', '4 gotas en el oído derecho cada 12 h, 7 días', 'PENDIENTE', NULL),
+(302, 204, 'Meloxicam', '0,1 ml cada 24 h, 5 días', 'COMPRADA', CURDATE() - INTERVAL 6 DAY),
+(303, 207, 'Drontal Plus', '1 comprimido, dosis única', 'COMPRADA', CURDATE() - INTERVAL 51 DAY),
+(304, 218, 'Meloxicam', '0,1 ml cada 24 h, 5 días', 'COMPRADA', CURDATE() - INTERVAL 24 DAY),
+(305, 219, 'Drontal gatos', '1 comprimido, dosis única', 'COMPRADA', CURDATE() - INTERVAL 69 DAY);
+
+-- Reseñas: una de Lucía y varias de otros socios, para que las clínicas tengan puntaje
+INSERT IGNORE INTO Resena(id, turno_id, veterinaria_id, socio_id, puntuacion, comentario, creadoEn) VALUES
+(401, 207, 2, 1, 5, 'Muy buena atención, nos explicaron todo con paciencia.', NOW() - INTERVAL 50 DAY),
+(402, 211, 1, 2, 4, 'Rápidos y amables. La espera fue un poco larga.', NOW()),
+(403, 218, 8, 3, 5, 'Excelente diagnóstico, Mora se recuperó enseguida.', NOW() - INTERVAL 24 DAY),
+(404, 219, 3, 3, 4, 'Buena atención y precios razonables.', NOW() - INTERVAL 68 DAY);

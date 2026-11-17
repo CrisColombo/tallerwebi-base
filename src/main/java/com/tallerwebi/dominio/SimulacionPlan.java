@@ -47,6 +47,12 @@ public class SimulacionPlan {
     return getAhorro() <= 0;
   }
 
+  /** Qué parte del total más caro representa un monto, de 0 a 100, para dibujar barras a escala. */
+  public double porcentaje(double monto) {
+    double maximo = resultados.stream().mapToDouble(ResultadoPlan::getTotal).max().orElse(0);
+    return maximo <= 0 ? 0 : Math.round((monto / maximo) * 1000) / 10.0;
+  }
+
   public boolean isSinAtenciones() {
     return atenciones.isEmpty();
   }

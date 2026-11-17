@@ -15,8 +15,10 @@ import com.tallerwebi.dominio.ServicioMascota;
 import com.tallerwebi.dominio.ServicioPago;
 import com.tallerwebi.dominio.ServicioPlan;
 import com.tallerwebi.dominio.ServicioReceta;
+import com.tallerwebi.dominio.ServicioSimulador;
 import com.tallerwebi.dominio.ServicioSocio;
 import com.tallerwebi.dominio.ServicioTurno;
+import com.tallerwebi.dominio.SimulacionPlan;
 import com.tallerwebi.dominio.Socio;
 import com.tallerwebi.dominio.Turno;
 import com.tallerwebi.dominio.Usuario;
@@ -39,6 +41,7 @@ public class ControladorMascotaTest {
   private ServicioTurno servicioTurno;
   private ServicioPago servicioPago;
   private ServicioReceta servicioReceta;
+  private ServicioSimulador servicioSimulador;
   private HttpSession sesion;
   private Socio socio;
   private Mascota mascota;
@@ -52,6 +55,7 @@ public class ControladorMascotaTest {
     servicioTurno = mock(ServicioTurno.class);
     servicioPago = mock(ServicioPago.class);
     servicioReceta = mock(ServicioReceta.class);
+    servicioSimulador = mock(ServicioSimulador.class);
     controladorMascota =
       new ControladorMascota(
         servicioSocio,
@@ -59,7 +63,8 @@ public class ControladorMascotaTest {
         servicioMascota,
         servicioTurno,
         servicioPago,
-        servicioReceta
+        servicioReceta,
+        servicioSimulador
       );
     sesion = mock(HttpSession.class);
     when(sesion.getAttribute(ControladorLogin.USUARIO_ID)).thenReturn(1L);
@@ -141,6 +146,16 @@ public class ControladorMascotaTest {
 
     assertThat(mav.getViewName(), equalTo("mascota-perfil"));
     assertThat(mav.getModel().get("historial"), is(historial));
+  }
+
+  @Test
+  public void verPerfilDeberiaIncluirLaSimulacionDePlanes() throws TurnoInvalido {
+    SimulacionPlan simulacion = new SimulacionPlan(firulais, 12, List.of(), List.of());
+    when(servicioSimulador.simular(socio, 1L, 12)).thenReturn(simulacion);
+
+    ModelAndView mav = controladorMascota.verPerfil(1L, sesion);
+
+    assertThat(mav.getModel().get("simulacion"), is(simulacion));
   }
 
   @Test

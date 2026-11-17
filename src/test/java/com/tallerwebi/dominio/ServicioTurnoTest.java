@@ -268,6 +268,20 @@ public class ServicioTurnoTest {
   }
 
   @Test
+  public void finalizarConPrecioDeberiaGuardarLasObservacionesDeLaVeterinaria()
+    throws TurnoInvalido {
+    Turno turno = dadoUnTurnoDe(firulais);
+    turno.setVeterinaria(veterinaria);
+    when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
+
+    servicioTurno.finalizar(veterinaria, 5L, "Otitis leve. Control en 15 días.", 8000.0);
+
+    assertThat(turno.getEstado(), is(EstadoTurno.FINALIZADO));
+    assertThat(turno.getObservacionesProfesional(), is("Otitis leve. Control en 15 días."));
+    assertThat(turno.getPrecioParticular(), is(8000.0));
+  }
+
+  @Test
   public void finalizarNoDeberiaPermitirFinalizarUnTurnoAjeno() {
     Veterinaria otra = dadaUnaVeterinariaQueAtiendeDe9A12(consulta);
     otra.setId(11L);

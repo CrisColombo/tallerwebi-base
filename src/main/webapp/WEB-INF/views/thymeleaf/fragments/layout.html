@@ -85,17 +85,17 @@
               <th:block th:if="${session.ROL == 'VETERINARIA'}">
                 <li class="nav-item">
                   <a class="nav-link" th:href="@{/veterinaria/inicio}"
-                    >Inicio</a
+                    >Agenda</a
+                  >
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" th:href="@{/veterinaria/turnos}"
+                    >Todos los turnos</a
                   >
                 </li>
                 <li class="nav-item">
                   <a class="nav-link" th:href="@{/veterinaria/panel}"
                     >Mi perfil</a
-                  >
-                </li>
-                <li class="nav-item">
-                  <a class="nav-link" th:href="@{/veterinaria/turnos}"
-                    >Mis turnos</a
                   >
                 </li>
               </th:block>
@@ -104,21 +104,35 @@
                   <a class="nav-link" th:href="@{/home}">Inicio</a>
                 </li>
                 <li class="nav-item">
-                  <a class="nav-link" th:href="@{/veterinarias}"
-                    >Veterinarias</a
-                  >
-                </li>
-                <li class="nav-item">
-                  <a class="nav-link" th:href="@{/servicios}">Servicios</a>
-                </li>
-                <li class="nav-item">
-                  <a class="nav-link" th:href="@{/planes}">Planes</a>
+                  <a class="nav-link" th:href="@{/mascotas}">Mis mascotas</a>
                 </li>
                 <li class="nav-item">
                   <a class="nav-link" th:href="@{/turnos}">Mis turnos</a>
                 </li>
-                <li class="nav-item">
-                  <a class="nav-link" th:href="@{/chat}">MediBot</a>
+                <li class="nav-item dropdown">
+                  <a
+                    class="nav-link dropdown-toggle"
+                    href="#"
+                    role="button"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false"
+                    >Explorar</a
+                  >
+                  <ul class="dropdown-menu">
+                    <li>
+                      <a class="dropdown-item" th:href="@{/veterinarias}"
+                        >Veterinarias</a
+                      >
+                    </li>
+                    <li>
+                      <a class="dropdown-item" th:href="@{/servicios}"
+                        >Servicios</a
+                      >
+                    </li>
+                    <li>
+                      <a class="dropdown-item" th:href="@{/planes}">Planes</a>
+                    </li>
+                  </ul>
                 </li>
               </th:block>
             </ul>
@@ -210,12 +224,106 @@
     </footer>
 
     <th:block th:fragment="scripts">
+      <!-- Socio logueado: MediBot flotante y barra de navegación inferior en el celular -->
+      <th:block
+        th:if="${session.USUARIO_ID != null and session.ROL != 'VETERINARIA'}"
+      >
+        <button
+          id="mb-abrir"
+          class="mp-fab"
+          type="button"
+          aria-controls="mb-panel"
+          aria-expanded="false"
+        >
+          <i class="bi bi-chat-dots-fill" aria-hidden="true"></i>
+          <span class="mp-fab__texto">Preguntale a MediBot</span>
+        </button>
+
+        <section id="mb-panel" class="mp-bot" aria-label="MediBot" hidden>
+          <div class="mp-bot__cab">
+            <img
+              class="mp-bot__logo"
+              th:src="@{/img/logo.png}"
+              alt=""
+              width="34"
+              height="34"
+            />
+            <div class="mp-bot__titulo">
+              <strong>MediBot</strong>
+              <small>Orientación sobre la salud de tus mascotas</small>
+            </div>
+            <button
+              id="mb-cerrar"
+              class="mp-bot__cerrar"
+              type="button"
+              aria-label="Cerrar MediBot"
+            >
+              <i class="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+          </div>
+          <div id="mb-mensajes" class="mp-bot__mensajes" aria-live="polite">
+            <div class="mp-bot__msg mp-bot__msg--bot">
+              Hola. Te ayudo con dudas de salud y cuidados de tus mascotas.
+              No reemplaza una consulta: ante una urgencia, andá a una guardia.
+            </div>
+          </div>
+          <div class="mp-bot__sugerencias">
+            <button type="button" data-pregunta="¿Cada cuánto tengo que vacunar a mis mascotas?">
+              Vacunas
+            </button>
+            <button type="button" data-pregunta="¿Cada cuánto conviene desparasitar a mis mascotas?">
+              Desparasitación
+            </button>
+            <button type="button" data-pregunta="Mi mascota no quiere comer, ¿qué puedo hacer?">
+              No quiere comer
+            </button>
+          </div>
+          <form
+            id="mb-form"
+            class="mp-bot__form"
+            th:attr="data-endpoint=@{/chat/mensaje}"
+          >
+            <label for="mb-input" class="visually-hidden">Tu pregunta</label>
+            <input
+              id="mb-input"
+              type="text"
+              autocomplete="off"
+              placeholder="Escribí tu pregunta…"
+              required
+            />
+            <button type="submit" aria-label="Enviar">
+              <i class="bi bi-send-fill" aria-hidden="true"></i>
+            </button>
+          </form>
+        </section>
+
+        <nav class="mp-tabbar" aria-label="Navegación principal">
+          <a th:href="@{/home}"
+            ><i class="bi bi-house-door" aria-hidden="true"></i>Inicio</a
+          >
+          <a th:href="@{/mascotas}"
+            ><i class="bi bi-heart-pulse" aria-hidden="true"></i>Mascotas</a
+          >
+          <a th:href="@{/turnos}"
+            ><i class="bi bi-calendar-event" aria-hidden="true"></i>Turnos</a
+          >
+          <a th:href="@{/veterinarias}"
+            ><i class="bi bi-compass" aria-hidden="true"></i>Explorar</a
+          >
+        </nav>
+
+        <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+        <script th:src="@{/js/medibot.js}"></script>
+      </th:block>
+
       <!-- Boostrap core js -->
       <script
         src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4"
         crossorigin="anonymous"
       ></script>
+      <script th:src="@{/js/navegacion.js}"></script>
     </th:block>
   </body>
 </html>

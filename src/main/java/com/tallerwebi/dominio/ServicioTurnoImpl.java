@@ -203,7 +203,7 @@ public class ServicioTurnoImpl implements ServicioTurno {
     if (!turno.estaConfirmado()) {
       throw new TurnoInvalido("Solo se pueden finalizar turnos confirmados");
     }
-    turno.finalizar();
+    turno.finalizar(observaciones);
     turno.setPrecioParticular(precioParticular);
   }
 

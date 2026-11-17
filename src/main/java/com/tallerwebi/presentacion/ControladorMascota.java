@@ -27,8 +27,11 @@ public class ControladorMascota extends ControladorConSocio {
   private ServicioTurno servicioTurno;
   private ServicioPago servicioPago;
   private ServicioReceta servicioReceta;
+  private ServicioSimulador servicioSimulador;
   private static final String REDIRECT_HOME = "redirect:/home";
   private static final String REDIRECT_MASCOTA = "redirect:/mascotas/";
+  /** Meses con los que la pestaña Plan compara si conviene otro plan. */
+  private static final int MESES_SIMULACION = 12;
 
   @Autowired
   public ControladorMascota(
@@ -37,7 +40,8 @@ public class ControladorMascota extends ControladorConSocio {
     ServicioMascota servicioMascota,
     ServicioTurno servicioTurno,
     ServicioPago servicioPago,
-    ServicioReceta servicioReceta
+    ServicioReceta servicioReceta,
+    ServicioSimulador servicioSimulador
   ) {
     super(servicioSocio);
     this.servicioPlan = servicioPlan;
@@ -45,6 +49,7 @@ public class ControladorMascota extends ControladorConSocio {
     this.servicioTurno = servicioTurno;
     this.servicioPago = servicioPago;
     this.servicioReceta = servicioReceta;
+    this.servicioSimulador = servicioSimulador;
   }
 
   @RequestMapping(path = "/mascotas/nueva", method = RequestMethod.GET)
@@ -106,6 +111,7 @@ public class ControladorMascota extends ControladorConSocio {
     try {
       modelo.put("historial", servicioTurno.historialDe(socio, id));
       modelo.put("recetas", servicioReceta.recetasDe(socio, id));
+      modelo.put("simulacion", servicioSimulador.simular(socio, id, MESES_SIMULACION));
     } catch (TurnoInvalido e) {
       return new ModelAndView("redirect:/home");
     }

@@ -26,18 +26,20 @@ public class ControladorTurnoTest {
   private Socio socio;
   private SolicitudTurno solicitud;
   private RedirectAttributesModelMap redirectAttributes;
+  private ServicioResena servicioResenaMock;
 
   @BeforeEach
   public void init() {
     servicioSocioMock = mock(ServicioSocio.class);
     servicioTurnoMock = mock(ServicioTurno.class);
+    servicioResenaMock = mock(ServicioResena.class);
     controladorTurno =
       new ControladorTurno(
         servicioSocioMock,
         servicioTurnoMock,
         mock(ServicioVeterinaria.class),
         mock(ServicioCobertura.class),
-        mock(ServicioResena.class)
+        servicioResenaMock
       );
 
     sesionMock = mock(HttpSession.class);
@@ -90,10 +92,51 @@ public class ControladorTurnoTest {
 
   @Test
   public void misTurnosDeberiaMostrarLosTurnosDelSocio() {
-    ModelAndView mav = controladorTurno.misTurnos(sesionMock);
+    ModelAndView mav = controladorTurno.misTurnos(new FiltroTurnos(), sesionMock);
 
     assertThat(mav.getViewName(), equalTo("mis-turnos"));
     verify(servicioTurnoMock, times(1)).turnosDe(socio);
+  }
+
+  @Test
+  public void misTurnosDeberiaAplicarElFiltroYOfrecerLasOpcionesDeLosTurnos() {
+    Mascota michi = new Mascota();
+    michi.setId(2L);
+    michi.setNombre("Michi");
+    socio.agregarMascota(michi);
+    Veterinaria veterinaria = new Veterinaria();
+    veterinaria.setId(1L);
+    veterinaria.setNombre("San Justo");
+    Servicio servicio = new Servicio();
+    servicio.setId(1L);
+    servicio.setNombre("Consulta clínica");
+    Turno atendido = new Turno();
+    atendido.setId(7L);
+    atendido.setMascota(michi);
+    atendido.setVeterinaria(veterinaria);
+    atendido.setServicio(servicio);
+    atendido.setFecha(LocalDate.now().minusDays(3));
+    atendido.setHora(LocalTime.of(10, 0));
+    atendido.finalizar("Otitis leve");
+    when(servicioTurnoMock.turnosDe(socio)).thenReturn(List.of(atendido));
+    FiltroTurnos filtro = new FiltroTurnos();
+    filtro.setVista(FiltroTurnos.ATENDIDOS);
+
+    ModelAndView mav = controladorTurno.misTurnos(filtro, sesionMock);
+
+    assertThat(mav.getModel().get("turnos"), is(List.of(atendido)));
+    assertThat(mav.getModel().get("veterinarias"), is(List.of(veterinaria)));
+    assertThat(mav.getModel().get("servicios"), is(List.of(servicio)));
+  }
+
+  @Test
+  public void misTurnosSinSerSocioDeberiaVolverAlHome() {
+    when(servicioSocioMock.buscarPorUsuario(2L)).thenReturn(null);
+
+    assertThat(
+      controladorTurno.misTurnos(new FiltroTurnos(), sesionMock).getViewName(),
+      equalTo("redirect:/home")
+    );
   }
 
   @Test

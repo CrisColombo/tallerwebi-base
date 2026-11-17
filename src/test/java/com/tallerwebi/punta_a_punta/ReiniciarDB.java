@@ -17,7 +17,10 @@ public class ReiniciarDB {
       // Deja solo los datos de data.sql: el admin (usuario 1), el socio de demo
       // (usuario 2, socio 1, mascotas 1 y 2), la veterinaria de demo (usuario 3,
       // clínicas 1 a 30) y el catálogo, que no se modifica.
+      // Reseñas y recetas apuntan a turnos: se borran primero.
       String sqlCommands =
+        "DELETE FROM Resena;\n" +
+        "DELETE FROM Receta;\n" +
         "DELETE FROM Turno;\n" +
         "DELETE FROM Mascota WHERE id > 2;\n" +
         "DELETE FROM Socio WHERE id > 1;\n" +

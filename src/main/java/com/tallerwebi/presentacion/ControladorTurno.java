@@ -4,10 +4,15 @@ import com.tallerwebi.dominio.*;
 import com.tallerwebi.dominio.excepcion.TurnoInvalido;
 import jakarta.servlet.http.HttpSession;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
@@ -82,16 +87,36 @@ public class ControladorTurno extends ControladorConSocio {
   }
 
   @RequestMapping(path = "/turnos", method = RequestMethod.GET)
-  public ModelAndView misTurnos(HttpSession sesion) {
+  public ModelAndView misTurnos(@ModelAttribute("filtro") FiltroTurnos filtro, HttpSession sesion) {
     Socio socio = socioLogueado(sesion);
     if (socio == null) {
       return new ModelAndView(REDIRECT_HOME);
     }
+    List<Turno> todos = servicioTurno.turnosDe(socio);
+    Map<Long, Boolean> resenas = mapaResenasPorTurno(todos);
+    Predicate<Turno> tieneResena = t -> Boolean.TRUE.equals(resenas.get(t.getId()));
+    LocalDateTime ahora = LocalDateTime.now();
+
     Map<String, Object> modelo = new ModelMap();
-    List<Turno> turnos = servicioTurno.turnosDe(socio);
-    modelo.put("turnos", turnos);
-    modelo.put("resenasPorTurno", mapaResenasPorTurno(turnos));
+    modelo.put("filtro", filtro);
+    modelo.put("turnos", filtro.aplicar(todos, ahora, tieneResena));
+    modelo.put("conteos", filtro.conteos(todos, ahora, tieneResena));
+    modelo.put("resenasPorTurno", resenas);
+    modelo.put("mascotas", socio.getMascotas());
+    modelo.put("especies", Especie.values());
+    modelo.put("veterinarias", distintos(todos, Turno::getVeterinaria, Veterinaria::getId));
+    modelo.put("servicios", distintos(todos, Turno::getServicio, Servicio::getId));
     return new ModelAndView("mis-turnos", modelo);
+  }
+
+  private static <T> List<T> distintos(
+    List<Turno> turnos,
+    Function<Turno, T> extraer,
+    Function<T, Long> id
+  ) {
+    Map<Long, T> unicos = new LinkedHashMap<>();
+    turnos.stream().map(extraer).forEach(e -> unicos.putIfAbsent(id.apply(e), e));
+    return new ArrayList<>(unicos.values());
   }
 
   @RequestMapping(path = "/turnos/{id}/cancelar", method = RequestMethod.POST)

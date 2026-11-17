@@ -11,6 +11,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
+import com.tallerwebi.dominio.AgendaVeterinaria;
 import com.tallerwebi.dominio.DatosReceta;
 import com.tallerwebi.dominio.RecetasDeConsulta;
 import com.tallerwebi.dominio.ServicioCobertura;
@@ -89,22 +90,28 @@ public class ControladorPanelVeterinariaTest {
   }
 
   @Test
-  public void inicioDeberiaMostrarLaVeterinariaLogueada() {
-    List<Turno> turnos = List.of(new Turno());
-    when(servicioTurno.turnosDe(veterinaria)).thenReturn(turnos);
+  public void inicioDeberiaMostrarLaAgendaDelPeriodoElegido() {
+    Turno deHoy = new Turno();
+    deHoy.setFecha(LocalDate.now());
+    deHoy.setHora(LocalTime.of(23, 59));
+    Turno deOtroDia = new Turno();
+    deOtroDia.setFecha(LocalDate.now().plusDays(10));
+    deOtroDia.setHora(LocalTime.NOON);
+    when(servicioTurno.turnosDe(veterinaria)).thenReturn(List.of(deHoy, deOtroDia));
 
-    ModelAndView mav = controlador.inicio(sesion);
+    ModelAndView mav = controlador.inicio("hoy", null, sesion);
 
     assertThat(mav.getViewName(), equalTo("inicio-veterinaria"));
     assertThat(mav.getModel().get("veterinaria"), is(veterinaria));
-    assertThat(mav.getModel().get("turnos"), is(turnos));
+    AgendaVeterinaria agenda = (AgendaVeterinaria) mav.getModel().get("agenda");
+    assertThat(agenda.getTurnos(), is(List.of(deHoy)));
   }
 
   @Test
   public void inicioDeberiaRechazarCuentasQueNoSonVeterinaria() {
     when(sesion.getAttribute(ControladorLogin.ROL)).thenReturn("SOCIO");
 
-    assertThat(controlador.inicio(sesion).getViewName(), equalTo("redirect:/home"));
+    assertThat(controlador.inicio("hoy", null, sesion).getViewName(), equalTo("redirect:/home"));
     verifyNoInteractions(servicioVeterinaria);
   }
 
@@ -274,6 +281,8 @@ public class ControladorPanelVeterinariaTest {
 
     assertThat(mav.getViewName(), equalTo("finalizar-turno"));
     assertThat(mav.getModel().get("turno"), is(turno));
+    assertThat(mav.getModel().get("historialClinico"), is(List.of()));
+    assertThat(mav.getModel().get("medicacionAnterior"), is(List.of()));
   }
 
   @Test

@@ -1,58 +1,88 @@
 <!DOCTYPE HTML>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 
-<head th:replace="~{fragments/layout :: head('Inicio')}"></head>
+<head th:replace="~{fragments/layout :: head('Agenda')}"></head>
 
 <body>
 
-  <header th:replace="~{fragments/layout :: encabezado('Inicio', 'Bienvenida, ' + ${veterinaria.nombre} + '. Gestioná tu veterinaria desde acá.')}"></header>
+  <header th:replace="~{fragments/layout :: encabezado('Agenda', ${veterinaria.nombre})}"></header>
 
   <main role="main" class="mp-main">
-    <section class="mp-card">
-      <h2 class="mp-seccion-titulo">¿Qué querés hacer?</h2>
-      <div class="d-flex flex-wrap gap-3">
-        <a class="btn btn-primary" th:href="@{/veterinaria/turnos}">Administrar mis turnos</a>
-        <a class="btn btn-outline-primary" th:href="@{/veterinaria/panel}">Editar mi perfil</a>
-      </div>
-    </section>
+    <p th:if="${mensaje != null}" class="alert alert-success" th:text="${mensaje}"></p>
+    <p th:if="${error != null}" class="alert alert-danger" th:text="${error}"></p>
 
-    <section class="mp-card mt-4">
-      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-        <h2 class="mp-seccion-titulo mb-0">Mis turnos</h2>
-        <a class="btn btn-outline-primary btn-sm" th:href="@{/veterinaria/turnos}">Ver y administrar todos</a>
+    <!-- Turnos de días anteriores que quedaron sin cerrar -->
+    <div th:unless="${#lists.isEmpty(agenda.sinCerrar)}" class="mp-aviso-sin-cerrar">
+      <p class="mb-0">
+        <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+        <strong th:text="${#lists.size(agenda.sinCerrar)} + (${#lists.size(agenda.sinCerrar) == 1} ? ' turno de días anteriores sigue' : ' turnos de días anteriores siguen')">2 turnos</strong>
+        sin cerrar. Esos socios todavía no recibieron su devolución.
+      </p>
+      <button class="btn btn-sm mp-btn-aviso" type="button" data-bs-toggle="collapse" data-bs-target="#sin-cerrar"
+        aria-controls="sin-cerrar" aria-expanded="false">Revisarlos</button>
+      <ul id="sin-cerrar" class="collapse mp-lista mp-aviso-sin-cerrar__lista">
+        <li th:each="t : ${agenda.sinCerrar}" class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+          <span><strong th:text="${#temporals.format(t.fecha, 'dd/MM')} + ' ' + ${#temporals.format(t.hora, 'HH:mm')}">10/11 10:00</strong>
+            · <span th:text="${t.mascota.nombre} + ' · ' + ${t.servicio.nombre}">Mora · Consulta</span></span>
+          <a class="btn btn-primary btn-sm" th:href="@{/veterinaria/turnos/{id}/finalizar(id=${t.id})}">Cerrar consulta</a>
+        </li>
+      </ul>
+    </div>
+
+    <section class="mp-card">
+      <div class="mp-agenda-cab">
+        <div>
+          <h2 class="h4 mb-0"
+            th:text="${agenda.periodo == 'hoy'} ? 'Hoy, ' + ${#temporals.format(agenda.hoy, 'dd/MM/yyyy')} : (${agenda.periodo == 'manana'} ? 'Mañana' : (${agenda.periodo == 'semana'} ? 'Próximos 7 días' : 'Todos los turnos'))">Hoy</h2>
+          <p class="mp-suave mb-0"
+            th:text="${#lists.size(agenda.turnos)} + (${#lists.size(agenda.turnos) == 1} ? ' turno' : ' turnos') + (${agenda.atendidos > 0} ? ', ' + ${agenda.atendidos} + ' ya atendidos.' : '.')">5 turnos.</p>
+        </div>
+        <nav class="mp-segmentos" aria-label="Período">
+          <a th:each="p : ${ {'hoy', 'manana', 'semana', 'todos'} }"
+            th:href="@{/veterinaria/inicio(periodo=${p}, buscar=${buscar})}"
+            th:classappend="${agenda.periodo == p} ? 'activo'"
+            th:attr="aria-current=${agenda.periodo == p} ? 'page' : null"
+            th:text="${p == 'hoy'} ? 'Hoy' : (${p == 'manana'} ? 'Mañana' : (${p == 'semana'} ? 'Semana' : 'Todos'))">Hoy</a>
+        </nav>
       </div>
-      <p th:if="${#lists.isEmpty(turnos)}" class="text-muted mb-0">Todavía no tenés turnos reservados.</p>
-      <div class="table-responsive" th:unless="${#lists.isEmpty(turnos)}">
-        <table class="table align-middle mb-0">
-          <thead>
-            <tr>
-              <th>Fecha y hora</th>
-              <th>Mascota</th>
-              <th>Socio</th>
-              <th>Servicio</th>
-              <th>Estado</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr th:each="t : ${turnos}">
-              <td th:text="${#temporals.format(t.fecha, 'dd/MM/yyyy')} + ' ' + ${t.hora}">01/10/2026 10:00</td>
-              <td>
-                <strong th:text="${t.mascota.nombre}">Mascota</strong>
-                <div class="small text-muted" th:text="${t.mascota.especie}">Especie</div>
-              </td>
-              <td>
-                <span th:text="${t.mascota.socio.nombre} + ' ' + ${t.mascota.socio.apellido}">Socio</span>
-                <div class="small text-muted" th:text="${t.mascota.socio.telefono}">Teléfono</div>
-              </td>
-              <td th:text="${t.servicio.nombre}">Servicio</td>
-              <td>
-                <span class="badge" th:text="${t.estado}"
-                  th:classappend="${t.estado.name() == 'CONFIRMADO'} ? 'text-bg-success' : 'text-bg-secondary'">CONFIRMADO</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+
+      <form class="mp-agenda-buscar" th:action="@{/veterinaria/inicio}" method="GET">
+        <input type="hidden" name="periodo" th:value="${agenda.periodo}" />
+        <label for="buscar" class="visually-hidden">Buscar mascota o socio</label>
+        <div class="input-group input-group-sm">
+          <span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span>
+          <input id="buscar" name="buscar" type="search" class="form-control" th:value="${buscar}" placeholder="Buscar mascota o socio" />
+          <button class="btn btn-outline-primary" type="submit">Buscar</button>
+        </div>
+      </form>
+
+      <p th:if="${#lists.isEmpty(agenda.turnos)}" class="mp-suave mb-0 mt-3">No hay turnos en este período.</p>
+
+      <ul class="mp-lista mp-agenda" th:unless="${#lists.isEmpty(agenda.turnos)}">
+        <li th:each="t : ${agenda.turnos}" class="mp-agenda__fila"
+          th:classappend="${t == agenda.siguiente} ? 'es-siguiente' : (${t.estaFinalizado() or t.estado.name() == 'CANCELADO'} ? 'es-hecha' : '')">
+          <span class="mp-agenda__hora">
+            <strong th:text="${#temporals.format(t.hora, 'HH:mm')}">10:00</strong>
+            <small th:if="${agenda.periodo != 'hoy'}" th:text="${#temporals.format(t.fecha, 'dd/MM')}">12/11</small>
+          </span>
+          <span class="mp-avatar" th:classappend="'mp-avatar--' + ${#strings.toLowerCase(t.mascota.especie)}"
+            th:text="${#strings.substring(t.mascota.nombre, 0, 1)}">M</span>
+          <span class="mp-agenda__datos">
+            <strong th:text="${t.mascota.nombre}">Mora</strong>
+            <span th:text="' · ' + ${#strings.capitalize(#strings.toLowerCase(t.mascota.especie))} + ' · ' + ${t.servicio.nombre}">· Gato · Consulta</span>
+            <small class="mp-suave d-block"
+              th:text="${t.mascota.socio.nombre} + ' ' + ${t.mascota.socio.apellido} + (${t == agenda.siguiente} ? ' · sigue ahora' : '')">Carla Benítez</small>
+          </span>
+          <span class="mp-agenda__acciones">
+            <th:block th:if="${t.estaConfirmado()}">
+              <a class="btn btn-outline-primary btn-sm" th:href="@{/veterinaria/turnos/{id}/historial(id=${t.id})}">Ficha</a>
+              <a class="btn btn-primary btn-sm" th:href="@{/veterinaria/turnos/{id}/finalizar(id=${t.id})}">Atender</a>
+            </th:block>
+            <span th:unless="${t.estaConfirmado()}" class="mp-estado" th:classappend="'mp-estado--' + ${#strings.toLowerCase(t.estado)}"
+              th:text="${t.estaFinalizado()} ? 'Atendido' : 'Cancelado'">Atendido</span>
+          </span>
+        </li>
+      </ul>
     </section>
   </main>
 

@@ -1,14 +1,11 @@
 package com.tallerwebi.presentacion;
 
+import com.tallerwebi.dominio.ServicioPendientes;
 import com.tallerwebi.dominio.ServicioSocio;
-import com.tallerwebi.dominio.ServicioTurno;
 import com.tallerwebi.dominio.Socio;
-import com.tallerwebi.dominio.Turno;
+import com.tallerwebi.dominio.Usuario;
 import jakarta.servlet.http.HttpSession;
-import java.time.LocalDate;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
@@ -19,40 +16,40 @@ import org.springframework.web.servlet.ModelAndView;
 @Controller
 public class ControladorHome extends ControladorConSocio {
 
-  private ServicioTurno servicioTurno;
+  private static final String SOCIO = "socio";
+  private static final String PENDIENTES = "pendientes";
+
+  private final ServicioPendientes servicioPendientes;
 
   @Autowired
-  public ControladorHome(ServicioSocio servicioSocio, ServicioTurno servicioTurno) {
+  public ControladorHome(ServicioSocio servicioSocio, ServicioPendientes servicioPendientes) {
     super(servicioSocio);
-    this.servicioTurno = servicioTurno;
+    this.servicioPendientes = servicioPendientes;
   }
 
   @RequestMapping(path = "/home", method = RequestMethod.GET)
   public ModelAndView irAHome(HttpSession sesion) {
-    if (
-      com.tallerwebi.dominio.Usuario.ROL_VETERINARIA.equals(
-        sesion.getAttribute(ControladorLogin.ROL)
-      )
-    ) {
+    if (Usuario.ROL_VETERINARIA.equals(sesion.getAttribute(ControladorLogin.ROL))) {
       return new ModelAndView("redirect:/veterinaria/inicio");
     }
     Map<String, Object> modelo = new ModelMap();
     Socio socio = socioLogueado(sesion);
-    modelo.put("socio", socio);
+    modelo.put(SOCIO, socio);
     if (socio != null) {
-      modelo.put("proximosTurnos", proximosTurnos(socio));
+      modelo.put(PENDIENTES, servicioPendientes.pendientesDe(socio));
     }
     return new ModelAndView("home", modelo);
   }
 
-  private List<Turno> proximosTurnos(Socio socio) {
-    LocalDate hoy = LocalDate.now();
-    return servicioTurno
-      .turnosDe(socio)
-      .stream()
-      .filter(t -> t.estaConfirmado() && !t.getFecha().isBefore(hoy))
-      .sorted((a, b) -> a.getFecha().atTime(a.getHora()).compareTo(b.getFecha().atTime(b.getHora()))
-      )
-      .collect(Collectors.toList());
+  @RequestMapping(path = "/mascotas", method = RequestMethod.GET)
+  public ModelAndView misMascotas(HttpSession sesion) {
+    Socio socio = socioLogueado(sesion);
+    if (socio == null) {
+      return new ModelAndView("redirect:/home");
+    }
+    Map<String, Object> modelo = new ModelMap();
+    modelo.put(SOCIO, socio);
+    modelo.put(PENDIENTES, servicioPendientes.pendientesDe(socio));
+    return new ModelAndView("mis-mascotas", modelo);
   }
 }

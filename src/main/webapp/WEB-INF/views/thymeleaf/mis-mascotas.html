@@ -1,0 +1,62 @@
+<!DOCTYPE HTML>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/layout :: head('Mis mascotas')}"></head>
+
+<body>
+
+  <header th:replace="~{fragments/layout :: encabezado('Mis mascotas', 'Su salud, sus turnos y su plan, en un solo lugar.')}"></header>
+
+  <main role="main" class="mp-main">
+    <div class="d-flex justify-content-end mb-3">
+      <a class="btn btn-primary" th:href="@{/mascotas/nueva}"><i class="bi bi-plus-lg" aria-hidden="true"></i> Agregar mascota</a>
+    </div>
+
+    <p th:if="${#lists.isEmpty(socio.mascotas)}" class="mp-card mp-suave">
+      Todavía no cargaste ninguna mascota. Agregala para sacarle turnos y elegir su plan.
+    </p>
+
+    <div class="mp-grilla-mascotas">
+      <a class="mp-card mp-tarjeta-mascota" th:each="m : ${socio.mascotas}" th:href="@{/mascotas/{id}(id=${m.id})}"
+        th:with="prox=${pendientes.proximoTurnoDe(m)}">
+        <div class="d-flex align-items-center gap-3">
+          <span class="mp-avatar mp-avatar--grande" th:classappend="'mp-avatar--' + ${#strings.toLowerCase(m.especie)}"
+            th:text="${#strings.substring(m.nombre, 0, 1)}">F</span>
+          <div>
+            <h2 class="h5 mb-0" th:text="${m.nombre}">Firulais</h2>
+            <span class="mp-suave"
+              th:text="${#strings.capitalize(#strings.toLowerCase(m.especie))} + (${m.raza != null and !#strings.isEmpty(m.raza)} ? ' · ' + ${m.raza} : '') + (${m.edad != null} ? ' · ' + ${m.edad} + (${m.edad == 1} ? ' año' : ' años') : '')">Perro · Mestizo</span>
+          </div>
+        </div>
+        <dl class="mp-datos">
+          <div>
+            <dt>Plan</dt>
+            <dd>
+              <span class="badge mp-badge-plan" th:text="${m.plan != null} ? ${m.plan.nombre} : 'Sin plan'">Plan</span>
+            </dd>
+          </div>
+          <div>
+            <dt>Vigencia</dt>
+            <dd>
+              <span th:if="${m.suscripcionAlDia()}" class="mp-estado mp-estado--confirmado"
+                th:text="'Hasta el ' + ${#temporals.format(m.venceSuscripcion, 'dd/MM')}">Hasta el 12/12</span>
+              <span th:unless="${m.suscripcionAlDia()}" class="mp-estado mp-estado--pendiente">Sin plan vigente</span>
+            </dd>
+          </div>
+          <div>
+            <dt>Próximo turno</dt>
+            <dd th:text="${prox != null} ? ${#temporals.format(prox.fecha, 'dd/MM')} + ' · ' + ${prox.servicio.nombre} : 'Ninguno'">Ninguno</dd>
+          </div>
+        </dl>
+        <span class="mp-tarjeta-mascota__ir">Ver perfil <i class="bi bi-arrow-right" aria-hidden="true"></i></span>
+      </a>
+    </div>
+  </main>
+
+  <footer th:replace="~{fragments/layout :: pie}"></footer>
+
+  <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+
+</body>
+
+</html>

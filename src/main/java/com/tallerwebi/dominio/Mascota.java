@@ -8,6 +8,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import java.time.LocalDate;
+import java.time.Period;
 import org.springframework.format.annotation.DateTimeFormat;
 
 /* Entidad de la base de datos
@@ -105,6 +106,15 @@ public class Mascota {
     LocalDate desde = suscripcionAlDia() ? venceSuscripcion : LocalDate.now();
     venceSuscripcion = desde.plusMonths(1);
     ultimoPagoMercadoPago = paymentId;
+  }
+
+  /** Años cumplidos a una fecha, o null si no se cargó la fecha de nacimiento. */
+  public Integer edadEnAnios(LocalDate fecha) {
+    return fechaNacimiento == null ? null : Period.between(fechaNacimiento, fecha).getYears();
+  }
+
+  public Integer getEdad() {
+    return edadEnAnios(LocalDate.now());
   }
 
   public void limpiarSuscripcion() {

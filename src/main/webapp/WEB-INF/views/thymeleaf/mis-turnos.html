@@ -4,244 +4,200 @@
 
   <body>
     <header
-      th:replace="~{fragments/layout :: encabezado('Mis turnos', 'Revisá, reprogramá o cancelá los turnos de tus mascotas.')}"
+      th:replace="~{fragments/layout :: encabezado('Mis turnos', 'Filtrá, reprogramá o cancelá los turnos de tus mascotas.')}"
     ></header>
 
     <main role="main" class="mp-main">
-      <div class="d-flex justify-content-end mb-3">
-        <a class="btn btn-primary" th:href="@{/turnos/nuevo}">Sacar turno</a>
-      </div>
-
-      <p
-        th:if="${mensaje != null}"
-        id="mensaje-turno"
-        class="alert alert-success"
-        th:text="${mensaje}"
-      ></p>
-      <p
-        th:if="${error != null}"
-        class="alert alert-danger"
-        th:text="${error}"
-      ></p>
-      <div th:if="${param.resenaOk}" class="alert alert-success" role="status">
-        Gracias, guardamos tu reseña.
-      </div>
-      <div
-        th:if="${param.errorResena}"
-        class="alert alert-danger"
-        role="alert"
-        th:text="${param.errorResena}"
-      >
+      <p th:if="${mensaje != null}" id="mensaje-turno" class="alert alert-success" th:text="${mensaje}"></p>
+      <p th:if="${error != null}" class="alert alert-danger" th:text="${error}"></p>
+      <div th:if="${param.resenaOk}" class="alert alert-success" role="status">Gracias, guardamos tu reseña.</div>
+      <div th:if="${param.errorResena}" class="alert alert-danger" role="alert" th:text="${param.errorResena}">
         No se pudo guardar la reseña.
       </div>
 
-      <section class="mp-card">
-        <p th:if="${#lists.isEmpty(turnos)}" class="text-muted mb-0">
-          Todavía no sacaste ningún turno.
-        </p>
+      <!-- Pestañas por estado: conservan los demás filtros -->
+      <nav class="mp-pestanas" aria-label="Estado del turno">
+        <a th:each="v : ${ {'proximos', 'atendidos', 'cancelados', 'todos'} }"
+          th:href="@{/turnos(vista=${v}, mascota=${filtro.mascota}, especie=${filtro.especie}, veterinaria=${filtro.veterinaria}, servicio=${filtro.servicio}, desde=${filtro.desde}, hasta=${filtro.hasta}, sinResena=${filtro.sinResena}, texto=${filtro.texto})}"
+          th:classappend="${filtro.vista == v} ? 'activa'"
+          th:attr="aria-current=${filtro.vista == v} ? 'page' : null">
+          <span th:text="${v == 'proximos'} ? 'Próximos' : (${v == 'atendidos'} ? 'Atendidos' : (${v == 'cancelados'} ? 'Cancelados' : 'Todos'))">Próximos</span>
+          <span class="mp-pestanas__cnt" th:text="${conteos[v]}">0</span>
+        </a>
+        <a class="btn btn-primary btn-sm ms-auto" th:href="@{/turnos/nuevo}">Sacar turno</a>
+      </nav>
 
-        <div class="table-responsive" th:unless="${#lists.isEmpty(turnos)}">
-          <table class="table align-middle mis-turnos-table">
-            <thead>
-              <tr>
-                <th>Fecha</th>
-                <th>Mascota</th>
-                <th>Servicio</th>
-                <th>Veterinaria</th>
-                <th>Estado</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              <th:block th:each="t : ${turnos}">
-                <tr>
-                  <td
-                    th:text="${#temporals.format(t.fecha, 'dd/MM/yyyy')} + ' ' + ${t.hora}"
-                  >
-                    01/10/2026 10:00
-                  </td>
-                  <td th:text="${t.mascota.nombre}">Mascota</td>
-                  <td th:text="${t.servicio.nombre}">Servicio</td>
-                  <td th:text="${t.veterinaria.nombre}">Veterinaria</td>
-                  <td>
-                    <span
-                      class="badge"
-                      th:text="${t.estado}"
-                      th:classappend="${t.estado.name() == 'CONFIRMADO'} ? 'text-bg-success' : (${t.estado.name() == 'CANCELADO'} ? 'text-bg-secondary' : 'text-bg-info')"
-                      >CONFIRMADO</span
-                    >
-                  </td>
-                  <td class="text-end">
-                    <div
-                      th:if="${t.estaConfirmado()}"
-                      class="d-flex justify-content-end gap-2 flex-wrap"
-                    >
-                      <a
-                        class="btn btn-outline-primary btn-sm"
-                        th:href="@{/turnos/{id}/reprogramar(id=${t.id})}"
-                        >Reprogramar</a
-                      >
-                      <form
-                        th:action="@{/turnos/{id}/cancelar(id=${t.id})}"
-                        method="POST"
-                        onsubmit="
-                          return confirm(
-                            '¿Seguro que querés cancelar este turno?',
-                          );
-                        "
-                      >
-                        <button
-                          class="btn btn-outline-danger btn-sm"
-                          type="submit"
-                        >
-                          Cancelar
-                        </button>
-                      </form>
-                    </div>
-                    <button
-                      th:if="${t.estaFinalizado() and resenasPorTurno != null and !resenasPorTurno[t.id]}"
-                      type="button"
-                      class="btn btn-warning btn-sm btn-resena-abrir"
-                      data-bs-toggle="collapse"
-                      th:attr="data-bs-target='#resena-panel-' + ${t.id}, aria-controls='resena-panel-' + ${t.id}"
-                      aria-expanded="true"
-                    >
-                      ★ Dejar reseña
-                    </button>
-                    <span
-                      th:if="${t.estaFinalizado() and resenasPorTurno != null and resenasPorTurno[t.id]}"
-                      class="badge badge-resena-hecha"
-                      >Ya calificaste</span
-                    >
-                  </td>
-                </tr>
-                <tr
-                  th:if="${t.estaFinalizado() and resenasPorTurno != null and !resenasPorTurno[t.id]}"
-                  class="resena-panel-row"
-                >
-                  <td colspan="6">
-                    <div
-                      class="collapse show"
-                      th:id="'resena-panel-' + ${t.id}"
-                    >
-                      <article class="resena-panel">
-                        <h3 class="resena-panel__titulo">
-                          ¿Cómo fue la atención?
-                        </h3>
-                        <p class="resena-panel__meta mb-0">
-                          <strong th:text="${t.veterinaria.nombre}"
-                            >Clínica</strong
-                          >
-                          ·
-                          <span th:text="${t.mascota.nombre}">Mascota</span>
-                          ·
-                          <span
-                            th:text="${#temporals.format(t.fecha, 'dd/MM/yyyy')} + ' ' + ${t.hora}"
-                            >fecha</span
-                          >
-                        </p>
+      <!-- Filtros: se resuelven en el servidor con un formulario GET -->
+      <form id="form-filtros" class="mp-card mp-filtros" th:action="@{/turnos}" method="GET">
+        <input type="hidden" name="vista" th:value="${filtro.vista}" />
 
-                        <form
-                          th:action="@{/turnos/{id}/resena(id=${t.id})}"
-                          method="POST"
-                          class="mt-3"
-                        >
-                          <p
-                            class="resena-panel__hint mb-2"
-                            th:attr="id='resena-leyenda-' + ${t.id}"
-                          >
-                            Elegí de 1 a 5 estrellas
-                          </p>
-                          <div
-                            class="resena-estrellas"
-                            role="radiogroup"
-                            th:attr="aria-labelledby='resena-leyenda-' + ${t.id}"
-                          >
-                            <input
-                              type="radio"
-                              name="puntuacion"
-                              value="5"
-                              th:id="'resena-star-' + ${t.id} + '-5'"
-                              required
-                            />
-                            <label th:for="'resena-star-' + ${t.id} + '-5'"
-                              >★</label
-                            >
-                            <input
-                              type="radio"
-                              name="puntuacion"
-                              value="4"
-                              th:id="'resena-star-' + ${t.id} + '-4'"
-                            />
-                            <label th:for="'resena-star-' + ${t.id} + '-4'"
-                              >★</label
-                            >
-                            <input
-                              type="radio"
-                              name="puntuacion"
-                              value="3"
-                              th:id="'resena-star-' + ${t.id} + '-3'"
-                            />
-                            <label th:for="'resena-star-' + ${t.id} + '-3'"
-                              >★</label
-                            >
-                            <input
-                              type="radio"
-                              name="puntuacion"
-                              value="2"
-                              th:id="'resena-star-' + ${t.id} + '-2'"
-                            />
-                            <label th:for="'resena-star-' + ${t.id} + '-2'"
-                              >★</label
-                            >
-                            <input
-                              type="radio"
-                              name="puntuacion"
-                              value="1"
-                              th:id="'resena-star-' + ${t.id} + '-1'"
-                            />
-                            <label th:for="'resena-star-' + ${t.id} + '-1'"
-                              >★</label
-                            >
-                          </div>
-
-                          <label
-                            class="form-label small fw-bold mt-2"
-                            th:attr="for='resena-comentario-' + ${t.id}"
-                            >Tu comentario</label
-                          >
-                          <textarea
-                            class="form-control resena-panel__comentario"
-                            name="comentario"
-                            rows="3"
-                            maxlength="500"
-                            required
-                            placeholder="Contá cómo fue la atención, si recomendarías la clínica..."
-                            th:id="'resena-comentario-' + ${t.id}"
-                          ></textarea>
-
-                          <div class="resena-panel__footer">
-                            <span class="small text-muted"
-                              >Una sola reseña por turno</span
-                            >
-                            <button type="submit" class="btn btn-primary">
-                              Publicar reseña
-                            </button>
-                          </div>
-                        </form>
-                      </article>
-                    </div>
-                  </td>
-                </tr>
-              </th:block>
-            </tbody>
-          </table>
+        <div class="mp-filtros__fila">
+          <fieldset class="mp-filtros__grupo">
+            <legend>Mascota</legend>
+            <div class="mp-chips">
+              <label class="mp-chip" th:each="m : ${mascotas}">
+                <input type="checkbox" name="mascota" th:value="${m.id}" th:checked="${filtro.mascota.contains(m.id)}" />
+                <span th:text="${m.nombre}">Michi</span>
+              </label>
+            </div>
+          </fieldset>
+          <fieldset class="mp-filtros__grupo">
+            <legend>Especie</legend>
+            <div class="mp-chips">
+              <label class="mp-chip">
+                <input type="radio" name="especie" value="" th:checked="${filtro.especie == null}" />
+                <span>Todas</span>
+              </label>
+              <label class="mp-chip" th:each="e : ${especies}">
+                <input type="radio" name="especie" th:value="${e}" th:checked="${filtro.especie == e}" />
+                <span th:text="${#strings.capitalize(#strings.toLowerCase(e))}">Perro</span>
+              </label>
+            </div>
+          </fieldset>
         </div>
-      </section>
+
+        <div class="mp-filtros__fila">
+          <div class="mp-filtros__grupo">
+            <label for="f-veterinaria" class="form-label">Veterinaria</label>
+            <select id="f-veterinaria" name="veterinaria" class="form-select form-select-sm">
+              <option value="">Todas</option>
+              <option th:each="v : ${veterinarias}" th:value="${v.id}" th:text="${v.nombre}"
+                th:selected="${filtro.veterinaria == v.id}">Veterinaria</option>
+            </select>
+          </div>
+          <div class="mp-filtros__grupo">
+            <label for="f-servicio" class="form-label">Servicio</label>
+            <select id="f-servicio" name="servicio" class="form-select form-select-sm">
+              <option value="">Todos</option>
+              <option th:each="s : ${servicios}" th:value="${s.id}" th:text="${s.nombre}"
+                th:selected="${filtro.servicio == s.id}">Servicio</option>
+            </select>
+          </div>
+          <div class="mp-filtros__grupo">
+            <label for="f-desde" class="form-label">Desde</label>
+            <input id="f-desde" type="date" name="desde" class="form-control form-control-sm" th:value="${filtro.desde}" />
+          </div>
+          <div class="mp-filtros__grupo">
+            <label for="f-hasta" class="form-label">Hasta</label>
+            <input id="f-hasta" type="date" name="hasta" class="form-control form-control-sm" th:value="${filtro.hasta}" />
+          </div>
+        </div>
+
+        <div class="mp-filtros__fila mp-filtros__fila--pie">
+          <div class="mp-chips" th:with="hoy=${#temporals.createToday()}">
+            <span class="mp-filtros__atajos">Atajos:</span>
+            <a class="mp-chip mp-chip--enlace"
+              th:href="@{/turnos(vista=${filtro.vista}, desde=${hoy.withDayOfMonth(1)}, hasta=${hoy.withDayOfMonth(1).plusMonths(1).minusDays(1)})}">Este mes</a>
+            <a class="mp-chip mp-chip--enlace"
+              th:href="@{/turnos(vista='todos', desde=${hoy.minusMonths(3)}, hasta=${hoy})}">Últimos 3 meses</a>
+            <label class="mp-chip">
+              <input type="checkbox" name="sinResena" value="true" th:checked="${filtro.sinResena}" />
+              <span>Solo sin reseña</span>
+            </label>
+          </div>
+          <div class="mp-filtros__buscar">
+            <label for="f-texto" class="visually-hidden">Buscar</label>
+            <input id="f-texto" type="search" name="texto" class="form-control form-control-sm" th:value="${filtro.texto}"
+              placeholder="Buscar: Otomax, Dermatología, San Justo…" />
+            <button class="btn btn-primary btn-sm" type="submit">Aplicar</button>
+            <a th:if="${filtro.activo}" class="btn btn-link btn-sm" th:href="@{/turnos(vista=${filtro.vista})}">Limpiar</a>
+          </div>
+        </div>
+      </form>
+
+      <!-- Lista de turnos -->
+      <div class="mp-turnos">
+        <div th:if="${#lists.isEmpty(turnos)}" class="mp-card mp-vacio">
+          <p class="mb-2"><strong th:text="${filtro.activo} ? 'No hay turnos con estos filtros.' : 'No hay turnos en esta pestaña.'">No hay turnos.</strong></p>
+          <a th:if="${filtro.activo}" th:href="@{/turnos(vista=${filtro.vista})}">Limpiar los filtros</a>
+          <a th:unless="${filtro.activo}" th:href="@{/turnos/nuevo}">Sacar un turno</a>
+        </div>
+
+        <article class="mp-card mp-turno" th:each="t : ${turnos}" th:id="'turno-' + ${t.id}"
+          th:with="resenado=${resenasPorTurno[t.id] == true}">
+          <div class="mp-turno__fila">
+            <div class="mp-turno__fecha">
+              <strong th:text="${#temporals.format(t.fecha, 'dd/MM')}">14/11</strong>
+              <span th:text="${#temporals.format(t.hora, 'HH:mm')} + ' · ' + ${#temporals.format(t.fecha, 'yyyy')}">10:00 · 2026</span>
+            </div>
+            <div class="mp-turno__info">
+              <p class="mb-0">
+                <strong th:text="${t.mascota.nombre}">Michi</strong> ·
+                <span th:text="${t.servicio.nombre}">Dermatología</span>
+                <span class="mp-estado" th:classappend="'mp-estado--' + ${#strings.toLowerCase(t.estado)}"
+                  th:text="${t.estado.name() == 'CONFIRMADO'} ? 'Confirmado' : (${t.estado.name() == 'FINALIZADO'} ? 'Atendido' : 'Cancelado')">Confirmado</span>
+              </p>
+              <small class="mp-suave" th:text="${t.veterinaria.nombre}">Clínica</small>
+            </div>
+            <div class="mp-turno__acciones">
+              <th:block th:if="${t.estaConfirmado()}">
+                <a class="btn btn-outline-primary btn-sm" th:href="@{/turnos/{id}/reprogramar(id=${t.id})}">Reprogramar</a>
+                <form th:action="@{/turnos/{id}/cancelar(id=${t.id})}" method="POST"
+                  onsubmit="return confirm('¿Seguro que querés cancelar este turno?');">
+                  <button class="btn btn-outline-danger btn-sm" type="submit">Cancelar</button>
+                </form>
+              </th:block>
+              <th:block th:if="${t.estaFinalizado()}">
+                <span th:if="${resenado}" class="mp-estado mp-estado--confirmado"><i class="bi bi-star-fill" aria-hidden="true"></i> Reseña enviada</span>
+                <button th:unless="${resenado}" type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="collapse"
+                  th:attr="data-bs-target='#resena-panel-' + ${t.id}, aria-controls='resena-panel-' + ${t.id}" aria-expanded="false">
+                  <i class="bi bi-star" aria-hidden="true"></i> Dejar reseña
+                </button>
+              </th:block>
+            </div>
+          </div>
+
+          <!-- Reseña de la consulta -->
+          <div th:if="${t.estaFinalizado() and !resenado}" class="collapse" th:id="'resena-panel-' + ${t.id}">
+            <article class="resena-panel mt-3">
+              <h3 class="resena-panel__titulo" th:text="'¿Cómo atendieron a ' + ${t.mascota.nombre} + '?'">¿Cómo fue la atención?</h3>
+              <form th:action="@{/turnos/{id}/resena(id=${t.id})}" method="POST" class="mt-2">
+                <p class="resena-panel__hint mb-2" th:attr="id='resena-leyenda-' + ${t.id}">Elegí de 1 a 5 estrellas</p>
+                <div class="resena-estrellas" role="radiogroup" th:attr="aria-labelledby='resena-leyenda-' + ${t.id}">
+                  <th:block th:each="n : ${ {5, 4, 3, 2, 1} }">
+                    <input type="radio" name="puntuacion" th:value="${n}" th:id="'resena-star-' + ${t.id} + '-' + ${n}" required />
+                    <label th:for="'resena-star-' + ${t.id} + '-' + ${n}" th:attr="aria-label=${n} + ' estrellas'">★</label>
+                  </th:block>
+                </div>
+                <label class="form-label small fw-bold mt-2" th:attr="for='resena-comentario-' + ${t.id}">Tu comentario</label>
+                <textarea class="form-control resena-panel__comentario" name="comentario" rows="3" maxlength="500" required
+                  placeholder="Contá cómo fue la atención y si recomendarías la clínica."
+                  th:id="'resena-comentario-' + ${t.id}"></textarea>
+                <div class="resena-panel__footer">
+                  <span class="small text-muted">Una sola reseña por turno</span>
+                  <button type="submit" class="btn btn-primary">Publicar reseña</button>
+                </div>
+              </form>
+            </article>
+          </div>
+        </article>
+      </div>
     </main>
 
     <footer th:replace="~{fragments/layout :: pie}"></footer>
 
     <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+    <script>
+      (function () {
+        // Los chips de mascota, especie y "solo sin reseña" filtran apenas se tocan.
+        var form = document.getElementById("form-filtros");
+        if (form) {
+          form.querySelectorAll(".mp-chip input, select").forEach(function (campo) {
+            campo.addEventListener("change", function () {
+              form.submit();
+            });
+          });
+        }
+        // Si se llega desde el Inicio con #resena-panel-ID, se abre el panel de reseña de ese turno.
+        var hash = window.location.hash;
+        if (hash.indexOf("#resena-panel-") === 0 && window.bootstrap) {
+          var panel = document.getElementById(hash.substring(1));
+          if (panel) {
+            window.bootstrap.Collapse.getOrCreateInstance(panel).show();
+            panel.scrollIntoView({ block: "center" });
+          }
+        }
+      })();
+    </script>
   </body>
 </html>

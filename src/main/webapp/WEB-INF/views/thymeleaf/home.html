@@ -5,7 +5,7 @@
 
 <body>
 
-  <header th:replace="~{fragments/layout :: encabezado(${socio != null} ? '¡Hola, ' + ${socio.nombre} + '!' : 'Inicio', '¿Qué necesitás hacer hoy?')}"></header>
+  <header th:replace="~{fragments/layout :: encabezado(${socio != null} ? '¡Hola, ' + ${socio.nombre} + '!' : 'Inicio', ${pendientes != null and !pendientes.vacio} ? 'Tenés ' + ${pendientes.cantidad} + (${pendientes.cantidad == 1} ? ' cosa pendiente.' : ' cosas pendientes.') : '¿Qué necesitás hacer hoy?')}"></header>
 
   <main role="main" class="mp-main">
 
@@ -15,54 +15,126 @@
     </div>
     <div th:if="${mensaje != null}" class="alert alert-success" th:text="${mensaje}"></div>
 
-    <th:block th:if="${socio != null}">
-      <div class="d-flex flex-wrap gap-2 mb-4">
-        <a id="btn-sacar-turno" class="btn btn-primary" th:href="@{/turnos/nuevo}">Sacar turno</a>
-        <a class="btn btn-outline-primary" th:href="@{/veterinarias}">Ver veterinarias</a>
-        <a class="btn btn-outline-primary" th:href="@{/servicios}">Ver servicios</a>
-        <a class="btn btn-outline-primary" th:href="@{/planes}">Ver planes</a>
-      </div>
+    <div th:if="${socio != null}" class="row g-4">
+      <div class="col-lg-7 d-grid gap-4 align-content-start">
 
-      <div class="row g-4">
-        <section class="col-lg-6">
-          <div class="mp-card h-100">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <h2 class="mp-seccion-titulo mb-0">Tus mascotas</h2>
-              <a class="btn btn-outline-primary btn-sm" th:href="@{/mascotas/nueva}">Agregar mascota</a>
+        <!-- Próximo turno -->
+        <section class="mp-card">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="mp-seccion-titulo mb-0">Tu próximo turno</h2>
+            <a class="small fw-bold text-decoration-none" th:href="@{/turnos}">Ver todos <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+          </div>
+
+          <div th:if="${pendientes.proximoTurno == null}" class="mp-suave">
+            <p class="mb-3">No tenés turnos pendientes.</p>
+            <a id="btn-sacar-turno" class="btn btn-primary" th:href="@{/turnos/nuevo}">Sacar turno</a>
+          </div>
+
+          <div th:if="${pendientes.proximoTurno != null}" th:with="t=${pendientes.proximoTurno}">
+            <div class="mp-proximo">
+              <div class="mp-proximo__dia">
+                <span th:text="${#temporals.format(t.fecha, 'MMM')}">nov</span>
+                <strong th:text="${#temporals.format(t.fecha, 'dd')}">14</strong>
+                <span th:text="${#temporals.format(t.hora, 'HH:mm')}">10:00</span>
+              </div>
+              <div class="mp-proximo__info">
+                <h3 th:text="${t.servicio.nombre} + ' para ' + ${t.mascota.nombre}">Dermatología para Michi</h3>
+                <p class="mp-suave mb-1"><i class="bi bi-geo-alt" aria-hidden="true"></i>
+                  <span th:text="${t.veterinaria.nombre} + (${t.veterinaria.direccion != null} ? ' · ' + ${t.veterinaria.direccion} : '')">Clínica</span></p>
+                <p class="mp-suave mb-0"><i class="bi bi-bell" aria-hidden="true"></i>
+                  Te mandamos un recordatorio por mail 24 horas antes.</p>
+              </div>
             </div>
-            <ul class="list-group">
-              <li class="list-group-item d-flex justify-content-between align-items-center"
-                th:each="m : ${socio.mascotas}">
-                <span>
-                  <a th:href="@{/mascotas/{id}(id=${m.id})}" th:text="${m.nombre}" class="fw-bold text-decoration-none">Firulais</a>
-                  <small class="text-muted"
-                    th:text="${m.especie} + (${m.raza != null and !#strings.isEmpty(m.raza)} ? ' · ' + ${m.raza} : '')">PERRO</small>
+            <div class="d-flex flex-wrap gap-2 mt-3">
+              <a class="btn btn-outline-primary btn-sm" th:href="@{/turnos/{id}/reprogramar(id=${t.id})}">Reprogramar</a>
+              <form th:action="@{/turnos/{id}/cancelar(id=${t.id})}" method="POST"
+                onsubmit="return confirm('¿Seguro que querés cancelar este turno?');">
+                <button class="btn btn-outline-danger btn-sm" type="submit">Cancelar</button>
+              </form>
+              <a id="btn-sacar-turno" class="btn btn-primary btn-sm ms-auto" th:href="@{/turnos/nuevo}">Sacar otro turno</a>
+            </div>
+          </div>
+        </section>
+
+        <!-- Mascotas -->
+        <section class="mp-card">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="mp-seccion-titulo mb-0">Tus mascotas</h2>
+            <a class="btn btn-outline-primary btn-sm" th:href="@{/mascotas/nueva}"><i class="bi bi-plus-lg" aria-hidden="true"></i> Agregar</a>
+          </div>
+          <p th:if="${#lists.isEmpty(socio.mascotas)}" class="mp-suave mb-0">Todavía no cargaste ninguna mascota.</p>
+          <ul class="mp-lista">
+            <li th:each="m : ${socio.mascotas}" th:with="prox=${pendientes.proximoTurnoDe(m)}">
+              <a class="mp-mascota-fila" th:href="@{/mascotas/{id}(id=${m.id})}">
+                <span class="mp-avatar" th:classappend="'mp-avatar--' + ${#strings.toLowerCase(m.especie)}"
+                  th:text="${#strings.substring(m.nombre, 0, 1)}">F</span>
+                <span class="mp-mascota-fila__datos">
+                  <strong th:text="${m.nombre}">Firulais</strong>
+                  <small class="mp-suave"
+                    th:text="${#strings.capitalize(#strings.toLowerCase(m.especie))} + (${m.edad != null} ? ' · ' + ${m.edad} + (${m.edad == 1} ? ' año' : ' años') : '') + (${prox != null} ? ' · turno el ' + ${#temporals.format(prox.fecha, 'dd/MM')} : '')">Perro · 7 años</small>
                 </span>
                 <span class="badge mp-badge-plan" th:text="${m.plan != null} ? ${m.plan.nombre} : 'Sin plan'">Plan</span>
-              </li>
-            </ul>
-            <p class="small text-muted mt-2 mb-0">Tocá el nombre de una mascota para ver su perfil y cambiarle el plan.</p>
-          </div>
-        </section>
-
-        <section class="col-lg-6">
-          <div class="mp-card h-100">
-            <h2 class="mp-seccion-titulo">Próximos turnos</h2>
-            <p th:if="${#lists.isEmpty(proximosTurnos)}" class="text-muted mb-0">
-              No tenés turnos pendientes.
-            </p>
-            <ul class="list-group" th:unless="${#lists.isEmpty(proximosTurnos)}">
-              <li class="list-group-item" th:each="t : ${proximosTurnos}">
-                <strong th:text="${#temporals.format(t.fecha, 'dd/MM/yyyy')} + ' ' + ${t.hora}">01/10 10:00</strong>
-                · <span th:text="${t.servicio.nombre}">Servicio</span>
-                para <span th:text="${t.mascota.nombre}">Mascota</span>
-                <div class="small text-muted" th:text="${t.veterinaria.nombre}">Veterinaria</div>
-              </li>
-            </ul>
-          </div>
+              </a>
+            </li>
+          </ul>
         </section>
       </div>
-    </th:block>
+
+      <!-- Pendientes -->
+      <section class="col-lg-5">
+        <div class="mp-card">
+          <h2 class="mp-seccion-titulo">Pendientes</h2>
+          <p th:if="${pendientes.vacio}" class="mp-suave mb-0">
+            <i class="bi bi-check2-circle" aria-hidden="true"></i> Está todo al día.
+          </p>
+          <ul class="mp-lista mp-pendientes" th:unless="${pendientes.vacio}">
+
+            <li th:each="t : ${pendientes.consultasRecientes}">
+              <span class="mp-pendiente__icono mp-pendiente__icono--consulta"><i class="bi bi-clipboard2-pulse" aria-hidden="true"></i></span>
+              <div>
+                <p class="mb-0"><strong th:text="${t.veterinaria.nombre}">Clínica</strong> finalizó la consulta de <span th:text="${t.mascota.nombre}">Michi</span></p>
+                <small class="mp-suave" th:text="${t.servicio.nombre} + ' · ' + ${#temporals.format(t.fecha, 'dd/MM')}">Consulta · 05/11</small>
+                <div class="d-flex flex-wrap gap-2 mt-2">
+                  <a class="btn btn-primary btn-sm" th:href="@{/mascotas/{id}(id=${t.mascota.id})} + '#salud'">Ver devolución</a>
+                  <a class="btn btn-outline-primary btn-sm" th:href="@{/turnos(vista='atendidos')} + '#resena-panel-' + ${t.id}">Dejar reseña</a>
+                </div>
+              </div>
+            </li>
+
+            <li th:each="r : ${pendientes.recetasSinComprar}">
+              <span class="mp-pendiente__icono mp-pendiente__icono--receta"><i class="bi bi-capsule" aria-hidden="true"></i></span>
+              <div>
+                <p class="mb-0">Te falta comprar <strong th:text="${r.medicamento}">Otomax</strong></p>
+                <small class="mp-suave" th:text="'Para ' + ${r.turno.mascota.nombre} + (${!#strings.isEmpty(r.indicaciones)} ? ' · ' + ${r.indicaciones} : '')">Para Michi</small>
+                <form class="mt-2" th:action="@{/mascotas/{id}/recetas/{recetaId}/comprada(id=${r.turno.mascota.id}, recetaId=${r.id})}" method="POST">
+                  <button class="btn btn-outline-primary btn-sm" type="submit"><i class="bi bi-check2" aria-hidden="true"></i> Ya lo compré</button>
+                </form>
+              </div>
+            </li>
+
+            <li th:each="m : ${pendientes.planesPorVencer}">
+              <span class="mp-pendiente__icono mp-pendiente__icono--plan"><i class="bi bi-credit-card" aria-hidden="true"></i></span>
+              <div>
+                <p class="mb-0" th:if="${m.venceSuscripcion != null and !m.suscripcionAlDia()}">El plan de <strong th:text="${m.nombre}">Firulais</strong> está vencido</p>
+                <p class="mb-0" th:if="${m.venceSuscripcion == null}">El plan de <strong th:text="${m.nombre}">Firulais</strong> todavía no está pago</p>
+                <p class="mb-0" th:if="${m.suscripcionAlDia()}">El plan de <strong th:text="${m.nombre}">Firulais</strong> vence el <span th:text="${#temporals.format(m.venceSuscripcion, 'dd/MM')}">16/11</span></p>
+                <small class="mp-suave" th:text="${m.plan.nombre} + ' · sin plan vigente no se pueden sacar turnos'">Plan Básico</small>
+                <div class="mt-2"><a class="btn btn-primary btn-sm" th:href="@{/mascotas/{id}(id=${m.id})} + '#plan'">Pagar con Mercado Pago</a></div>
+              </div>
+            </li>
+
+            <li th:each="t : ${pendientes.turnosSinResena}">
+              <span class="mp-pendiente__icono mp-pendiente__icono--resena"><i class="bi bi-star" aria-hidden="true"></i></span>
+              <div>
+                <p class="mb-0">¿Cómo te atendieron en <strong th:text="${t.veterinaria.nombre}">Clínica</strong>?</p>
+                <small class="mp-suave" th:text="${t.servicio.nombre} + ' de ' + ${t.mascota.nombre} + ' · ' + ${#temporals.format(t.fecha, 'dd/MM')}">Cardiología</small>
+                <div class="mt-2"><a class="btn btn-outline-primary btn-sm" th:href="@{/turnos(vista='atendidos')} + '#resena-panel-' + ${t.id}">Dejar reseña</a></div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </section>
+    </div>
 
   </main>
 

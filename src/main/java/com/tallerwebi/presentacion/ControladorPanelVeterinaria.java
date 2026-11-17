@@ -1,5 +1,6 @@
 package com.tallerwebi.presentacion;
 
+import com.tallerwebi.dominio.AgendaVeterinaria;
 import com.tallerwebi.dominio.DatosReceta;
 import com.tallerwebi.dominio.ServicioCobertura;
 import com.tallerwebi.dominio.ServicioReceta;
@@ -13,6 +14,7 @@ import com.tallerwebi.dominio.excepcion.UsuarioExistente;
 import jakarta.servlet.http.HttpSession;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -67,14 +69,27 @@ public class ControladorPanelVeterinaria extends ControladorConVeterinaria {
   }
 
   @RequestMapping(path = "/veterinaria/inicio", method = RequestMethod.GET)
-  public ModelAndView inicio(HttpSession sesion) {
+  public ModelAndView inicio(
+    @RequestParam(value = "periodo", defaultValue = AgendaVeterinaria.HOY) String periodo,
+    @RequestParam(value = "buscar", required = false) String buscar,
+    HttpSession sesion
+  ) {
     Veterinaria veterinaria = veterinariaLogueada(sesion);
     if (veterinaria == null) {
       return new ModelAndView(REDIRECT_HOME);
     }
     Map<String, Object> modelo = new ModelMap();
     modelo.put("veterinaria", veterinaria);
-    modelo.put("turnos", servicioTurno.turnosDe(veterinaria));
+    modelo.put("buscar", buscar);
+    modelo.put(
+      "agenda",
+      new AgendaVeterinaria(
+        servicioTurno.turnosDe(veterinaria),
+        periodo,
+        buscar,
+        LocalDateTime.now()
+      )
+    );
     return new ModelAndView("inicio-veterinaria", modelo);
   }
 
@@ -202,6 +217,9 @@ public class ControladorPanelVeterinaria extends ControladorConVeterinaria {
       Turno turno = servicioTurno.buscarTurnoDeVeterinaria(veterinaria, turnoId);
       Map<String, Object> modelo = new ModelMap();
       modelo.put(TURNO, turno);
+      // Ficha del paciente al costado del formulario: lo que se le hizo y recetó antes.
+      modelo.put("historialClinico", servicioTurno.historialClinicoDe(veterinaria, turnoId));
+      modelo.put("medicacionAnterior", servicioReceta.medicacionAnterior(veterinaria, turno));
       return new ModelAndView("finalizar-turno", modelo);
     } catch (TurnoInvalido e) {
       redirectAttributes.addFlashAttribute(ERROR, e.getMessage());
