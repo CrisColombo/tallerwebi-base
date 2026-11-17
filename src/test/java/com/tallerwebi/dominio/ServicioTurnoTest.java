@@ -756,4 +756,125 @@ public class ServicioTurnoTest {
 
     assertThat(historial, contains(actual, anterior));
   }
+
+  private static final LocalTime DIECISEIS = LocalTime.of(16, 0);
+
+  private Turno dadoUnTurnoDeHoyALas16() {
+    veterinaria.setHoraCierre(LocalTime.of(20, 0));
+    Turno turno = dadoUnTurno(HOY, DIECISEIS, EstadoTurno.CONFIRMADO);
+    turno.setVeterinaria(veterinaria);
+    when(repositorioTurnoMock.buscarPorId(5L)).thenReturn(turno);
+    return turno;
+  }
+
+  @Test
+  public void horariosParaAdelantarDeberiaOfrecerLosLibresDeHoyAnterioresAlTurno() {
+    Turno turno = dadoUnTurnoDeHoyALas16();
+    when(repositorioTurnoMock.horasOcupadas(10L, HOY)).thenReturn(List.of(LocalTime.of(13, 0)));
+
+    List<LocalTime> horarios = servicioTurno.horariosParaAdelantar(turno);
+
+    assertThat(
+      horarios,
+      contains(
+        LocalTime.of(12, 30),
+        LocalTime.of(13, 30),
+        LocalTime.of(14, 0),
+        LocalTime.of(14, 30),
+        LocalTime.of(15, 0),
+        LocalTime.of(15, 30)
+      )
+    );
+  }
+
+  @Test
+  public void horariosParaAdelantarNoDeberiaOfrecerHorariosQueYaPasaronNiPosterioresAlTurno() {
+    Turno turno = dadoUnTurnoDeHoyALas16();
+
+    List<LocalTime> horarios = servicioTurno.horariosParaAdelantar(turno);
+
+    assertThat(horarios, not(hasItem(LocalTime.of(11, 30))));
+    assertThat(horarios, not(hasItem(DIECISEIS)));
+    assertThat(horarios, not(hasItem(LocalTime.of(16, 30))));
+  }
+
+  @Test
+  public void horariosParaAdelantarNoDeberiaOfrecerNadaParaTurnosCanceladosOFinalizados() {
+    Turno cancelado = dadoUnTurnoDeHoyALas16();
+    cancelado.cancelar();
+    assertThat(servicioTurno.horariosParaAdelantar(cancelado), is(empty()));
+
+    Turno finalizado = dadoUnTurnoDeHoyALas16();
+    finalizado.setEstado(EstadoTurno.FINALIZADO);
+    assertThat(servicioTurno.horariosParaAdelantar(finalizado), is(empty()));
+  }
+
+  @Test
+  public void horariosParaAdelantarNoDeberiaOfrecerNadaParaTurnosDeOtroDia() {
+    dadoUnTurnoDeHoyALas16();
+    Turno deManiana = dadoUnTurno(JUEVES, DIECISEIS, EstadoTurno.CONFIRMADO);
+    deManiana.setVeterinaria(veterinaria);
+
+    assertThat(servicioTurno.horariosParaAdelantar(deManiana), is(empty()));
+  }
+
+  @Test
+  public void adelantarDeberiaMoverElTurnoDeHoyAlHorarioLibre() throws TurnoInvalido {
+    Turno turno = dadoUnTurnoDeHoyALas16();
+    LocalTime nuevaHora = LocalTime.of(14, 0);
+
+    servicioTurno.adelantar(socio, 5L, nuevaHora);
+
+    assertThat(turno.getFecha(), is(HOY));
+    assertThat(turno.getHora(), is(nuevaHora));
+    assertThat(turno.getEstado(), is(EstadoTurno.CONFIRMADO));
+  }
+
+  @Test
+  public void adelantarAUnHorarioQueOtroSocioTomoDeberiaFallarYDejarElTurnoComoEstaba() {
+    Turno turno = dadoUnTurnoDeHoyALas16();
+    LocalTime tomado = LocalTime.of(14, 0);
+    when(repositorioTurnoMock.horasOcupadas(10L, HOY)).thenReturn(List.of(tomado));
+
+    TurnoInvalido error = assertThrows(
+            TurnoInvalido.class,
+            () -> servicioTurno.adelantar(socio, 5L, tomado)
+    );
+
+    assertThat(error.getMessage(), equalTo("Ese horario ya no está disponible"));
+    assertThat(turno.getHora(), is(DIECISEIS));
+  }
+
+  @Test
+  public void adelantarAUnHorarioPosteriorAlTurnoDeberiaFallar() {
+    Turno turno = dadoUnTurnoDeHoyALas16();
+
+    assertThrows(TurnoInvalido.class, () -> servicioTurno.adelantar(socio, 5L, LocalTime.of(17, 0)));
+    assertThat(turno.getHora(), is(DIECISEIS));
+  }
+
+  @Test
+  public void adelantarUnTurnoCanceladoDeberiaFallar() {
+    Turno turno = dadoUnTurnoDeHoyALas16();
+    turno.cancelar();
+
+    TurnoInvalido error = assertThrows(
+      TurnoInvalido.class,
+      () -> servicioTurno.adelantar(socio, 5L, LocalTime.of(14, 0))
+    );
+
+    assertThat(error.getMessage(), equalTo("Solo se pueden adelantar turnos confirmados"));
+    assertThat(turno.getHora(), is(DIECISEIS));
+  }
+
+  @Test
+  public void adelantarUnTurnoDeOtroSocioDeberiaFallar() {
+    Turno turno = dadoUnTurnoDeHoyALas16();
+    Mascota ajena = new Mascota();
+    ajena.setId(15L);
+    turno.setMascota(ajena);
+
+    assertThrows(TurnoInvalido.class, () -> servicioTurno.adelantar(socio, 5L, LocalTime.of(14, 0)));
+    assertThat(turno.getHora(), is(DIECISEIS));
+  }
 }

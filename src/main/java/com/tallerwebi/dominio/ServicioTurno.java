@@ -27,6 +27,10 @@ public interface ServicioTurno {
   void reprogramar(Socio socio, Long turnoId, LocalDate diaNuevo, LocalTime horaNueva)
     throws TurnoInvalido;
 
+  List<LocalTime> horariosParaAdelantar(Turno turno);
+
+  void adelantar(Socio socio, Long turnoId, LocalTime horaNueva) throws TurnoInvalido;
+
   void reprogramarPorVeterinaria(
     Veterinaria veterinaria,
     Long turnoId,

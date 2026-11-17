@@ -91,10 +91,31 @@ public class ControladorTurno extends ControladorConSocio {
     List<Turno> turnos = servicioTurno.turnosDe(socio);
     modelo.put("turnos", turnos);
     modelo.put("resenasPorTurno", mapaResenasPorTurno(turnos));
+    modelo.put("adelantosPorTurno", mapaAdelantosPorTurno(turnos));
     return new ModelAndView("mis-turnos", modelo);
   }
 
-  @RequestMapping(path = "/turnos/{id}/cancelar", method = RequestMethod.POST)
+    @RequestMapping(path = "/turnos/{id}/adelantar", method = RequestMethod.POST)
+    public ModelAndView adelantar(
+            @PathVariable("id") Long turnoId,
+            @RequestParam("hora") @DateTimeFormat(pattern = "HH:mm") LocalTime hora,
+            HttpSession sesion,
+            RedirectAttributes redirectAttributes
+    ) {
+        Socio socio = socioLogueado(sesion);
+        if (socio == null) {
+            return new ModelAndView(REDIRECT_HOME);
+        }
+        try {
+            servicioTurno.adelantar(socio, turnoId, hora);
+            redirectAttributes.addFlashAttribute(MENSAJE, "Adelantaste tu turno a las " + hora + ".");
+        } catch (TurnoInvalido e) {
+            redirectAttributes.addFlashAttribute(ERROR, e.getMessage());
+        }
+        return new ModelAndView(REDIRECT_TURNOS);
+    }
+
+    @RequestMapping(path = "/turnos/{id}/cancelar", method = RequestMethod.POST)
   public ModelAndView cancelar(
     @PathVariable("id") Long turnoId,
     HttpSession sesion,
@@ -134,7 +155,18 @@ public class ControladorTurno extends ControladorConSocio {
     return new ModelAndView("nuevo-turno", modelo);
   }
 
-  private Map<Long, Boolean> mapaResenasPorTurno(List<Turno> turnos) {
+    private Map<Long, List<LocalTime>> mapaAdelantosPorTurno(List<Turno> turnos) {
+        Map<Long, List<LocalTime>> mapa = new HashMap<>();
+        for (Turno turno : turnos) {
+            List<LocalTime> horarios = servicioTurno.horariosParaAdelantar(turno);
+            if (!horarios.isEmpty()) {
+                mapa.put(turno.getId(), horarios);
+            }
+        }
+        return mapa;
+    }
+
+    private Map<Long, Boolean> mapaResenasPorTurno(List<Turno> turnos) {
     Map<Long, Boolean> mapa = new HashMap<>();
     for (Turno turno : turnos) {
       if (turno.estaFinalizado()) {

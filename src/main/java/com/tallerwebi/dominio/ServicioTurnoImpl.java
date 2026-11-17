@@ -207,6 +207,29 @@ public class ServicioTurnoImpl implements ServicioTurno {
   }
 
   @Override
+  public List<LocalTime> horariosParaAdelantar(Turno turno) {
+    if (turno == null || !turno.estaConfirmado() || !LocalDate.now(reloj).equals(turno.getFecha())) {
+      return List.of();
+    }
+    return horariosDisponibles(turno.getVeterinaria(), turno.getFecha())
+      .stream()
+      .filter(h -> h.isBefore(turno.getHora()))
+      .collect(Collectors.toList());
+  }
+
+  @Override
+  public void adelantar(Socio socio, Long turnoId, LocalTime horaNueva) throws TurnoInvalido {
+    Turno turno = buscarTurnoDe(socio, turnoId);
+    if (!turno.estaConfirmado()) {
+      throw new TurnoInvalido("Solo se pueden adelantar turnos confirmados");
+    }
+    if (!horariosParaAdelantar(turno).contains(horaNueva)) {
+      throw new TurnoInvalido("Ese horario ya no está disponible");
+    }
+    turno.reprogramar(turno.getFecha(), horaNueva);
+  }
+
+  @Override
   public void reprogramarPorVeterinaria(
     Veterinaria veterinaria,
     Long turnoId,

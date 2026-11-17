@@ -204,4 +204,76 @@ public class ControladorTurnoTest {
     assertThat(mav.getModel().get("horarios"), is(horarios));
     assertThat(mav.getModel().get("fecha"), is(fecha));
   }
+
+  @Test
+  public void misTurnosDeberiaMostrarLosHorariosParaAdelantarCuandoSeLiberoUno() {
+    Turno turno = new Turno();
+    turno.setId(5L);
+    LocalTime nueve = LocalTime.of(9, 0);
+    when(servicioTurnoMock.turnosDe(socio)).thenReturn(List.of(turno));
+    when(servicioTurnoMock.horariosParaAdelantar(turno)).thenReturn(List.of(nueve));
+
+    ModelAndView mav = controladorTurno.misTurnos(sesionMock);
+
+    assertThat(mav.getViewName(), equalTo("mis-turnos"));
+    java.util.Map<?, ?> adelantos = (java.util.Map<?, ?>) mav.getModel().get("adelantosPorTurno");
+    assertThat(adelantos.get(5L), equalTo(List.of(nueve)));
+  }
+
+  @Test
+  public void misTurnosNoDeberiaMostrarAvisoSiNoHayHorariosParaAdelantar() {
+    Turno turno = new Turno();
+    turno.setId(5L);
+    when(servicioTurnoMock.turnosDe(socio)).thenReturn(List.of(turno));
+    when(servicioTurnoMock.horariosParaAdelantar(turno)).thenReturn(List.of());
+
+    ModelAndView mav = controladorTurno.misTurnos(sesionMock);
+
+    java.util.Map<?, ?> adelantos = (java.util.Map<?, ?>) mav.getModel().get("adelantosPorTurno");
+    assertThat(adelantos.isEmpty(), is(true));
+  }
+
+  @Test
+  public void adelantarConExitoDeberiaIrAMisTurnosConMensaje() throws TurnoInvalido {
+    LocalTime hora = LocalTime.of(9, 0);
+
+    ModelAndView mav = controladorTurno.adelantar(5L, hora, sesionMock, redirectAttributes);
+
+    verify(servicioTurnoMock, times(1)).adelantar(socio, 5L, hora);
+    assertThat(mav.getViewName(), equalTo("redirect:/turnos"));
+    assertThat(
+      redirectAttributes.getFlashAttributes().get("mensaje"),
+      equalTo("Adelantaste tu turno a las 09:00.")
+    );
+  }
+
+  @Test
+  public void adelantarConErrorDeberiaMostrarElMotivoYVolverAMisTurnos() throws TurnoInvalido {
+    LocalTime hora = LocalTime.of(9, 0);
+    doThrow(new TurnoInvalido("Ese horario ya no está disponible"))
+      .when(servicioTurnoMock)
+      .adelantar(socio, 5L, hora);
+
+    ModelAndView mav = controladorTurno.adelantar(5L, hora, sesionMock, redirectAttributes);
+
+    assertThat(mav.getViewName(), equalTo("redirect:/turnos"));
+    assertThat(
+      redirectAttributes.getFlashAttributes().get("error"),
+      equalTo("Ese horario ya no está disponible")
+    );
+  }
+
+  @Test
+  public void adelantarSinSerSocioDeberiaVolverAlHome() {
+    when(servicioSocioMock.buscarPorUsuario(2L)).thenReturn(null);
+
+    ModelAndView mav = controladorTurno.adelantar(
+      5L,
+      LocalTime.of(9, 0),
+      sesionMock,
+      redirectAttributes
+    );
+
+    assertThat(mav.getViewName(), equalTo("redirect:/home"));
+  }
 }

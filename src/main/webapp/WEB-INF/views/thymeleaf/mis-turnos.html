@@ -23,6 +23,29 @@
         class="alert alert-danger"
         th:text="${error}"
       ></p>
+
+      <section
+        th:each="oferta : ${adelantosPorTurno}"
+        class="alert alert-info"
+        role="status"
+      >
+      <p class="mb-2">
+        <strong>Se liberó un horario más temprano.</strong>
+        Podés adelantar tu turno de hoy:
+      </p>
+      <form
+        th:each="hora : ${oferta.value}"
+        th:action="@{/turnos/{id}/adelantar(id=${oferta.key})}"
+        method="POST"
+        class="d-inline"
+      >
+      <input type="hidden" name="hora" th:value="${hora}" />
+        <button class="btn btn-primary btn-sm" type="submit">
+          Adelantar a las <span th:text="${hora}">09:00</span>
+      </button>
+      </form>
+      </section>
+
       <div th:if="${param.resenaOk}" class="alert alert-success" role="status">
         Gracias, guardamos tu reseña.
       </div>
