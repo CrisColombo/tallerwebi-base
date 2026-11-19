@@ -1,6 +1,7 @@
 package com.tallerwebi.dominio;
 
 import com.tallerwebi.dominio.excepcion.TurnoInvalido;
+import java.time.LocalDate;
 import java.util.List;
 
 public interface ServicioCobroTurno {
@@ -18,4 +19,10 @@ public interface ServicioCobroTurno {
     String observaciones,
     List<Long> serviciosAdicionalesIds
   ) throws TurnoInvalido;
+
+  /**
+   * Aviso para el socio al sacar turno: cuántas atenciones le quedan en el mes y cuánto va a
+   * pagar. Devuelve null si todavía no hay datos suficientes (sin plan, sin servicio o sin precio).
+   */
+  AvisoCobro avisoPara(Mascota mascota, Long servicioId, LocalDate fecha);
 }

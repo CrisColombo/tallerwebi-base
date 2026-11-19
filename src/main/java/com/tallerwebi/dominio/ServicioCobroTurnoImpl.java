@@ -2,10 +2,13 @@ package com.tallerwebi.dominio;
 
 import com.tallerwebi.dominio.excepcion.TurnoInvalido;
 import jakarta.transaction.Transactional;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -41,7 +44,12 @@ public class ServicioCobroTurnoImpl implements ServicioCobroTurno {
     servicios.add(turno.getServicio());
     servicios.addAll(serviciosAdicionales(veterinaria, serviciosAdicionalesIds));
 
-    CobroMensual cobro = cobroDelMes(turno);
+    CobroMensual cobro = cobroDelMes(
+      turno.getMascota(),
+      YearMonth.from(turno.getFecha()),
+      turno.getId(),
+      Turno::estaFinalizado
+    );
     List<LineaCobro> lineas = new ArrayList<>();
     for (Servicio servicio : servicios) {
       double precio = servicio.getPrecioParticular();
@@ -96,16 +104,86 @@ public class ServicioCobroTurnoImpl implements ServicioCobroTurno {
     return servicio.getPrecioParticular();
   }
 
-  /** Cuenta las atenciones ya finalizadas de la mascota en el mes, para saber cuánto cupo queda. */
-  private CobroMensual cobroDelMes(Turno turno) {
-    Mascota mascota = turno.getMascota();
-    YearMonth mes = YearMonth.from(turno.getFecha());
+  @Override
+  public AvisoCobro avisoPara(Mascota mascota, Long servicioId, LocalDate fecha) {
+    Servicio servicio = servicioId == null ? null : repositorioServicio.buscarPorId(servicioId);
+    if (
+      mascota == null ||
+      mascota.getPlan() == null ||
+      servicio == null ||
+      servicio.getPrecioParticular() == null
+    ) {
+      return null;
+    }
+    YearMonth mes = YearMonth.from(fecha == null ? LocalDate.now() : fecha);
+    CobroMensual cobro = cobroDelMes(
+      mascota,
+      mes,
+      null,
+      t -> t.estaFinalizado() || t.estaConfirmado()
+    );
+    int usadas = cobro.getCubiertas();
+    double precio = servicio.getPrecioParticular();
+    double paga = cobro.cobrar(servicio, precio);
+    boolean cubierta = cobro.getCubiertas() > usadas;
+    return redactarAviso(mascota.getPlan(), cubierta, usadas, precio, paga);
+  }
+
+  private AvisoCobro redactarAviso(
+    Plan plan,
+    boolean cubierta,
+    int usadas,
+    double precio,
+    double paga
+  ) {
+    Number tope = plan.getTopeMensual();
+    if (!cubierta) {
+      return new AvisoCobro(
+        "Tu plan no cubre este servicio. Pagás el precio particular: " + dinero(precio) + ".",
+        true
+      );
+    }
+    if (tope == null) {
+      return new AvisoCobro("Tu plan cubre esta atención.", false);
+    }
+    if (usadas >= tope.intValue()) {
+      return new AvisoCobro(
+        "Ya usaste las " +
+        tope.intValue() +
+        " atenciones de este mes. Esta la pagás a precio particular: " +
+        dinero(precio) +
+        ".",
+        true
+      );
+    }
+    int quedan = tope.intValue() - usadas;
+    String restantes = quedan == 1 ? "Te queda 1 atención" : "Te quedan " + quedan + " atenciones";
+    String pago = paga == 0
+      ? "Esta no tiene costo para vos."
+      : "Pagás un copago de " + dinero(paga) + ".";
+    return new AvisoCobro(
+      restantes + " este mes con tu plan " + plan.getNombre() + ". " + pago,
+      false
+    );
+  }
+
+  private String dinero(double monto) {
+    return "$" + String.format(Locale.of("es", "AR"), "%,.0f", monto);
+  }
+
+  /** Cuenta las atenciones de la mascota en el mes para saber cuánto cupo del plan queda. */
+  private CobroMensual cobroDelMes(
+    Mascota mascota,
+    YearMonth mes,
+    Long turnoExcluidoId,
+    Predicate<Turno> cuenta
+  ) {
     CobroMensual cobro = new CobroMensual(mascota.getPlan(), 0);
     List<Turno> previos = repositorioTurno
       .listarPorMascota(mascota.getId())
       .stream()
-      .filter(Turno::estaFinalizado)
-      .filter(t -> !Objects.equals(t.getId(), turno.getId()))
+      .filter(cuenta)
+      .filter(t -> turnoExcluidoId == null || !Objects.equals(t.getId(), turnoExcluidoId))
       .filter(t -> YearMonth.from(t.getFecha()).equals(mes))
       .collect(Collectors.toList());
     for (Turno previo : previos) {
