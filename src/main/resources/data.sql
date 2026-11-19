@@ -191,3 +191,30 @@ INSERT IGNORE INTO Resena(id, turno_id, veterinaria_id, socio_id, puntuacion, co
 
 
 UPDATE Plan SET topeMensual = 4, copago = 2000 WHERE nivel = 1;
+
+
+-- Precio particular de catálogo de cada servicio
+UPDATE Servicio SET precioParticular = CASE id
+                                           WHEN 1 THEN 8000
+                                           WHEN 2 THEN 12000
+                                           WHEN 3 THEN 6000
+                                           WHEN 4 THEN 7000
+                                           WHEN 5 THEN 3000
+                                           WHEN 6 THEN 4000
+                                           WHEN 7 THEN 15000
+                                           WHEN 8 THEN 20000
+                                           WHEN 9 THEN 18000
+                                           WHEN 10 THEN 18000
+                                           WHEN 11 THEN 15000
+                                           WHEN 12 THEN 25000
+                                           WHEN 13 THEN 400000
+                                           WHEN 14 THEN 60000
+                                           WHEN 15 THEN 35000
+    END
+WHERE precioParticular IS NULL;
+
+-- San Justo (la veterinaria de demo) también hace análisis, radiografías y ecografías
+INSERT IGNORE INTO Veterinaria_Servicio(veterinaria_id, servicio_id) VALUES (1, 10), (1, 11), (1, 12);
+
+-- La descripción del Básico tiene que reflejar el tope y el copago
+UPDATE Plan SET descripcion = 'Prevención y atención primaria. Hasta 4 atenciones por mes con un copago de $2.000.' WHERE id = 1;

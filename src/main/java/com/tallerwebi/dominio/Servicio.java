@@ -18,6 +18,9 @@ public class Servicio {
   // Nivel mínimo de plan que lo cubre: 1 = Básico, 2 = Premium.
   private Integer nivelRequerido;
 
+  // Lo que cuesta el servicio sin plan (precio particular de catálogo).
+  private Double precioParticular;
+
   public Long getId() {
     return id;
   }
@@ -48,5 +51,13 @@ public class Servicio {
 
   public void setNivelRequerido(Integer nivelRequerido) {
     this.nivelRequerido = nivelRequerido;
+  }
+
+  public Double getPrecioParticular() {
+    return precioParticular;
+  }
+
+  public void setPrecioParticular(Double precioParticular) {
+    this.precioParticular = precioParticular;
   }
 }

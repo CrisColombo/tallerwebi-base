@@ -1,15 +1,20 @@
 package com.tallerwebi.dominio;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @SuppressWarnings("PMD.TooManyFields")
 @Entity
@@ -44,6 +49,15 @@ public class Turno {
 
   // Lo que habría costado la atención sin plan (lo carga la veterinaria al finalizar).
   private Double precioParticular;
+
+  // Servicios extra que se sumaron al turno (radiografía, vacuna, etc.).
+  @OneToMany(
+    mappedBy = "turno",
+    cascade = CascadeType.ALL,
+    orphanRemoval = true,
+    fetch = FetchType.EAGER
+  )
+  private List<AtencionAdicional> adicionales = new ArrayList<>();
 
   public boolean estaConfirmado() {
     return estado == EstadoTurno.CONFIRMADO;
@@ -152,6 +166,23 @@ public class Turno {
 
   public boolean estaFinalizado() {
     return estado == EstadoTurno.FINALIZADO;
+  }
+
+  public void agregarAdicional(Servicio servicio, Double precio) {
+    adicionales.add(new AtencionAdicional(this, servicio, precio));
+  }
+
+  public List<AtencionAdicional> getAdicionales() {
+    return adicionales;
+  }
+
+  /** Precio del servicio del turno más el de todos los extras. */
+  public double getTotalParticular() {
+    double total = precioParticular == null ? 0 : precioParticular;
+    for (AtencionAdicional adicional : adicionales) {
+      total += adicional.getPrecio();
+    }
+    return total;
   }
 
   public Double getPrecioParticular() {
