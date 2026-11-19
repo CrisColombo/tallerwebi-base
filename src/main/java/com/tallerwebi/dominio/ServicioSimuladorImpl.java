@@ -4,12 +4,13 @@ import com.tallerwebi.dominio.excepcion.TurnoInvalido;
 import jakarta.transaction.Transactional;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -53,13 +54,10 @@ public class ServicioSimuladorImpl implements ServicioSimulador {
     List<Plan> planes = repositorioPlan.listar();
     List<Turno> turnos = atencionesConPrecio(socio, mascotaId, meses);
 
-    List<ItemAtencion> items = new ArrayList<>();
-    for (Turno turno : turnos) {
-      items.add(armarItem(turno, planes));
-    }
+    List<ItemAtencion> items = armarItems(turnos, planes);
     List<ResultadoPlan> resultados = new ArrayList<>();
     for (Plan plan : planes) {
-      resultados.add(armarResultado(plan, mascota, meses, turnos));
+      resultados.add(armarResultado(plan, mascota, meses, items));
     }
     return new SimulacionPlan(mascota, meses, resultados, items);
   }
@@ -81,30 +79,60 @@ public class ServicioSimuladorImpl implements ServicioSimulador {
     return elegidas;
   }
 
-  private ItemAtencion armarItem(Turno turno, List<Plan> planes) {
-    Set<Long> cubren = new HashSet<>();
-    for (Plan plan : planes) {
-      if (plan.cubre(turno.getServicio())) {
-        cubren.add(plan.getId());
+  /** Para cada atención calcula lo que se paga con cada plan. Van en orden de fecha. */
+  private List<ItemAtencion> armarItems(List<Turno> turnos, List<Plan> planes) {
+    Map<Long, Map<YearMonth, Integer>> cubiertasPorMes = new HashMap<>();
+    List<ItemAtencion> items = new ArrayList<>();
+    for (Turno turno : turnos) {
+      Map<Long, Double> pagoPorPlan = new HashMap<>();
+      for (Plan plan : planes) {
+        pagoPorPlan.put(plan.getId(), pagoCon(plan, turno, cubiertasPorMes));
       }
+      items.add(
+        new ItemAtencion(
+          turno.getFecha(),
+          turno.getServicio().getNombre(),
+          turno.getPrecioParticular(),
+          pagoPorPlan
+        )
+      );
     }
-    return new ItemAtencion(
-      turno.getFecha(),
-      turno.getServicio().getNombre(),
-      turno.getPrecioParticular(),
-      cubren
-    );
+    return items;
   }
 
-  private ResultadoPlan armarResultado(Plan plan, Mascota mascota, int meses, List<Turno> turnos) {
-    double noCubierto = 0;
-    for (Turno turno : turnos) {
-      if (!plan.cubre(turno.getServicio())) {
-        noCubierto += turno.getPrecioParticular();
-      }
+  /**
+   * Lo que el dueño paga por una atención con un plan:
+   * si el plan no la cubre o ya pasó el tope del mes, el precio particular completo;
+   * si la cubre dentro del tope, solo el copago (nunca más que el precio).
+   */
+  private double pagoCon(Plan plan, Turno turno, Map<Long, Map<YearMonth, Integer>> cubiertas) {
+    double precio = turno.getPrecioParticular();
+    if (!plan.cubre(turno.getServicio())) {
+      return precio;
+    }
+    Map<YearMonth, Integer> delPlan = cubiertas.computeIfAbsent(
+      plan.getId(),
+      id -> new HashMap<>()
+    );
+    int numeroEnElMes = delPlan.merge(YearMonth.from(turno.getFecha()), 1, Integer::sum);
+    if (!plan.dentroDelTope(numeroEnElMes)) {
+      return precio;
+    }
+    return Math.min(precio, plan.copagoPorAtencion());
+  }
+
+  private ResultadoPlan armarResultado(
+    Plan plan,
+    Mascota mascota,
+    int meses,
+    List<ItemAtencion> items
+  ) {
+    double pagoAparte = 0;
+    for (ItemAtencion item : items) {
+      pagoAparte += item.pagoCon(plan.getId());
     }
     Plan planActual = mascota.getPlan();
     boolean actual = planActual != null && Objects.equals(planActual.getId(), plan.getId());
-    return new ResultadoPlan(plan, meses, noCubierto, actual);
+    return new ResultadoPlan(plan, meses, pagoAparte, actual);
   }
 }
