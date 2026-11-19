@@ -3,6 +3,7 @@ package com.tallerwebi.presentacion;
 import com.tallerwebi.dominio.AgendaVeterinaria;
 import com.tallerwebi.dominio.DatosReceta;
 import com.tallerwebi.dominio.ServicioCobertura;
+import com.tallerwebi.dominio.ServicioCobroTurno;
 import com.tallerwebi.dominio.ServicioReceta;
 import com.tallerwebi.dominio.ServicioTurno;
 import com.tallerwebi.dominio.ServicioVeterinaria;
@@ -45,19 +46,22 @@ public class ControladorPanelVeterinaria extends ControladorConVeterinaria {
   private final ServicioCobertura servicioCobertura;
   private final ServicioTurno servicioTurno;
   private final ServicioReceta servicioReceta;
+  private final ServicioCobroTurno servicioCobroTurno;
 
   @Autowired
   public ControladorPanelVeterinaria(
     ServicioVeterinaria servicioVeterinaria,
     ServicioCobertura servicioCobertura,
     ServicioTurno servicioTurno,
-    ServicioReceta servicioReceta
+    ServicioReceta servicioReceta,
+    ServicioCobroTurno servicioCobroTurno
   ) {
     super(servicioVeterinaria);
     this.servicioVeterinaria = servicioVeterinaria;
     this.servicioCobertura = servicioCobertura;
     this.servicioTurno = servicioTurno;
     this.servicioReceta = servicioReceta;
+    this.servicioCobroTurno = servicioCobroTurno;
   }
 
   @RequestMapping(path = "/veterinaria/panel", method = RequestMethod.GET)
@@ -220,11 +224,32 @@ public class ControladorPanelVeterinaria extends ControladorConVeterinaria {
       // Ficha del paciente al costado del formulario: lo que se le hizo y recetó antes.
       modelo.put("historialClinico", servicioTurno.historialClinicoDe(veterinaria, turnoId));
       modelo.put("medicacionAnterior", servicioReceta.medicacionAnterior(veterinaria, turno));
+      modelo.put("serviciosExtra", veterinaria.getServicios());
+      modelo.put("cobro", servicioCobroTurno.calcularCobro(veterinaria, turnoId, List.of()));
       return new ModelAndView("finalizar-turno", modelo);
     } catch (TurnoInvalido e) {
       redirectAttributes.addFlashAttribute(ERROR, e.getMessage());
       return new ModelAndView(REDIRECT_TURNOS);
     }
+  }
+
+  @RequestMapping(path = "/veterinaria/turnos/{id}/cobro", method = RequestMethod.GET)
+  public ModelAndView cobro(
+    @PathVariable("id") Long turnoId,
+    @RequestParam(value = "extra", required = false) List<Long> extras,
+    HttpSession sesion
+  ) {
+    Veterinaria veterinaria = veterinariaLogueada(sesion);
+    if (veterinaria == null) {
+      return new ModelAndView(REDIRECT_HOME);
+    }
+    Map<String, Object> modelo = new ModelMap();
+    try {
+      modelo.put("cobro", servicioCobroTurno.calcularCobro(veterinaria, turnoId, extras));
+    } catch (TurnoInvalido e) {
+      modelo.put("errorCobro", e.getMessage());
+    }
+    return new ModelAndView("finalizar-turno :: cobro", modelo);
   }
 
   @RequestMapping(path = "/veterinaria/turnos/{id}/medicacion", method = RequestMethod.GET)
@@ -327,7 +352,7 @@ public class ControladorPanelVeterinaria extends ControladorConVeterinaria {
     @RequestParam(value = "medicamento", required = false) List<String> medicamentos,
     @RequestParam(value = "indicaciones", required = false) List<String> indicaciones,
     @RequestParam(value = "observaciones", required = false) String observaciones,
-    @RequestParam(value = "precioParticular", required = false) Double precioParticular,
+    @RequestParam(value = "extra", required = false) List<Long> extras,
     HttpSession sesion,
     RedirectAttributes redirectAttributes
   ) {
@@ -337,7 +362,7 @@ public class ControladorPanelVeterinaria extends ControladorConVeterinaria {
     }
     try {
       Turno turno = servicioTurno.buscarTurnoDeVeterinaria(veterinaria, turnoId);
-      servicioTurno.finalizar(veterinaria, turnoId, observaciones, precioParticular);
+      servicioCobroTurno.finalizarConAdicionales(veterinaria, turnoId, observaciones, extras);
       servicioReceta.registrar(turno, armarRecetas(medicamentos, indicaciones));
       redirectAttributes.addFlashAttribute(MENSAJE, "Finalizaste la consulta.");
     } catch (TurnoInvalido e) {
