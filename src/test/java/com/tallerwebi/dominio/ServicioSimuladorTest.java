@@ -143,6 +143,34 @@ public class ServicioSimuladorTest {
     assertThat(simulacion.getMeses(), equalTo(3));
   }
 
+  @Test
+  public void deberiaContarCadaServicioAdicionalComoUnaAtencionPropia() throws Exception {
+    Turno turno = dadaUnaAtencion(LocalDate.of(2026, 9, 1), consulta, 8000.0);
+    turno.agregarAdicional(cirugia, 400000.0);
+    dadaUnaMascotaPropiaConAtenciones(turno);
+
+    SimulacionPlan simulacion = servicioSimulador.simular(socio, MASCOTA_ID, 12);
+
+    assertThat(simulacion.getAtenciones(), hasSize(2));
+    assertThat(simulacion.getPlanActual().getNoCubierto(), equalTo(400000.0));
+    assertThat(simulacion.getMasConveniente().getPlan(), is(premium));
+  }
+
+  @Test
+  public void deberiaGastarElTopeConLosServiciosAdicionales() throws Exception {
+    basico.setTopeMensual(1);
+    basico.setCopago(2000.0);
+    Servicio vacunacion = dadoUnServicio(3L, "Vacunación", 1);
+    Turno turno = dadaUnaAtencion(LocalDate.of(2026, 9, 1), consulta, 8000.0);
+    turno.agregarAdicional(vacunacion, 12000.0);
+    dadaUnaMascotaPropiaConAtenciones(turno);
+
+    SimulacionPlan simulacion = servicioSimulador.simular(socio, MASCOTA_ID, 12);
+
+    // consulta: copago de 2000; vacunación: ya no queda cupo, 12000 completos
+    assertThat(simulacion.getPlanActual().getNoCubierto(), equalTo(14000.0));
+  }
+
   private void dadaUnaMascotaPropiaConAtenciones(Turno... atenciones) throws Exception {
     when(servicioMascotaMock.buscarPorIdParaSocio(socio, MASCOTA_ID)).thenReturn(firulais);
     when(servicioTurnoMock.historialDe(socio, MASCOTA_ID))

@@ -135,6 +135,9 @@ public class VistasNavegacionTest {
     assertThat(atender, containsString("Medicación anterior"));
     assertThat(atender, containsString("Otomax"));
     assertThat(atender, containsString("Finalizar y enviar devolución"));
+    assertThat(atender, containsString("Servicios adicionales realizados"));
+    assertThat(atender, containsString("El socio debe pagar"));
+    assertThat(atender, containsString("Cubierto"));
   }
 
   private String pagina(MockHttpServletRequestBuilder pedido) throws Exception {
@@ -173,6 +176,7 @@ public class VistasNavegacionTest {
     Servicio dermatologia = new Servicio();
     dermatologia.setNombre("Dermatología");
     dermatologia.setNivelRequerido(2);
+    dermatologia.setPrecioParticular(15000.0);
     sesion.persist(dermatologia);
 
     Veterinaria sanJusto = new Veterinaria();

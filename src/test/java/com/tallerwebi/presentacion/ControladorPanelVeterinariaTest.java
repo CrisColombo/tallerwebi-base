@@ -1,28 +1,12 @@
 package com.tallerwebi.presentacion;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-import com.tallerwebi.dominio.AgendaVeterinaria;
-import com.tallerwebi.dominio.DatosReceta;
-import com.tallerwebi.dominio.Mascota;
-import com.tallerwebi.dominio.Receta;
-import com.tallerwebi.dominio.RecetasDeConsulta;
-import com.tallerwebi.dominio.ServicioCobertura;
-import com.tallerwebi.dominio.ServicioReceta;
-import com.tallerwebi.dominio.ServicioTurno;
-import com.tallerwebi.dominio.ServicioVeterinaria;
-import com.tallerwebi.dominio.Turno;
-import com.tallerwebi.dominio.Usuario;
-import com.tallerwebi.dominio.Veterinaria;
+import com.tallerwebi.dominio.*;
 import com.tallerwebi.dominio.excepcion.DatosDeRegistroInvalidos;
 import com.tallerwebi.dominio.excepcion.TurnoInvalido;
 import com.tallerwebi.dominio.excepcion.UsuarioExistente;
@@ -45,6 +29,7 @@ public class ControladorPanelVeterinariaTest {
   private ServicioCobertura servicioCobertura;
   private ServicioTurno servicioTurno;
   private ServicioReceta servicioReceta;
+  private ServicioCobroTurno servicioCobroTurno;
   private ControladorPanelVeterinaria controlador;
   private HttpSession sesion;
   private Veterinaria veterinaria;
@@ -56,12 +41,14 @@ public class ControladorPanelVeterinariaTest {
     servicioCobertura = mock(ServicioCobertura.class);
     servicioTurno = mock(ServicioTurno.class);
     servicioReceta = mock(ServicioReceta.class);
+    servicioCobroTurno = mock(ServicioCobroTurno.class);
     controlador =
       new ControladorPanelVeterinaria(
         servicioVeterinaria,
         servicioCobertura,
         servicioTurno,
-        servicioReceta
+        servicioReceta,
+        servicioCobroTurno
       );
     sesion = mock(HttpSession.class);
     when(sesion.getAttribute(ControladorLogin.USUARIO_ID)).thenReturn(USUARIO_ID);
@@ -273,7 +260,9 @@ public class ControladorPanelVeterinariaTest {
   @Test
   public void formularioFinalizarDeberiaCargarElTurno() throws Exception {
     Turno turno = new Turno();
+    CobroTurno cobro = new CobroTurno(List.of());
     when(servicioTurno.buscarTurnoDeVeterinaria(veterinaria, TURNO_ID)).thenReturn(turno);
+    when(servicioCobroTurno.calcularCobro(veterinaria, TURNO_ID, List.of())).thenReturn(cobro);
 
     ModelAndView mav = controlador.formularioFinalizar(
       TURNO_ID,
@@ -285,6 +274,8 @@ public class ControladorPanelVeterinariaTest {
     assertThat(mav.getModel().get("turno"), is(turno));
     assertThat(mav.getModel().get("historialClinico"), is(List.of()));
     assertThat(mav.getModel().get("medicacionAnterior"), is(List.of()));
+    assertThat(mav.getModel().get("serviciosExtra"), is(veterinaria.getServicios()));
+    assertThat(mav.getModel().get("cobro"), is(cobro));
   }
 
   @Test
@@ -316,7 +307,8 @@ public class ControladorPanelVeterinariaTest {
       attrs
     );
 
-    verify(servicioTurno).finalizar(veterinaria, TURNO_ID, "Otitis leve, control en 7 días", null);
+    verify(servicioCobroTurno)
+      .finalizarConAdicionales(veterinaria, TURNO_ID, "Otitis leve, control en 7 días", null);
     ArgumentCaptor<List<DatosReceta>> captor = ArgumentCaptor.forClass(List.class);
     verify(servicioReceta).registrar(eq(turno), captor.capture());
     assertThat(captor.getValue().size(), is(2));
@@ -341,7 +333,7 @@ public class ControladorPanelVeterinariaTest {
       new RedirectAttributesModelMap()
     );
 
-    verify(servicioTurno).finalizar(veterinaria, TURNO_ID, null, null);
+    verify(servicioCobroTurno).finalizarConAdicionales(veterinaria, TURNO_ID, null, null);
     verify(servicioReceta).registrar(eq(turno), eq(List.of()));
   }
 
@@ -368,8 +360,8 @@ public class ControladorPanelVeterinariaTest {
   @Test
   public void finalizarTurnoInvalidoDeberiaMostrarElErrorYNoGuardarRecetas() throws Exception {
     doThrow(new TurnoInvalido("Solo se pueden finalizar turnos confirmados"))
-      .when(servicioTurno)
-      .finalizar(veterinaria, TURNO_ID, null, null);
+      .when(servicioCobroTurno)
+      .finalizarConAdicionales(veterinaria, TURNO_ID, null, null);
     RedirectAttributesModelMap attrs = new RedirectAttributesModelMap();
 
     controlador.finalizar(TURNO_ID, List.of("Amoxicilina"), List.of(""), null, null, sesion, attrs);
@@ -397,6 +389,55 @@ public class ControladorPanelVeterinariaTest {
 
     assertThat(mav.getViewName(), equalTo("redirect:/home"));
     verifyNoInteractions(servicioReceta);
+  }
+
+  @Test
+  public void finalizarConExtrasDeberiaPasarLosServiciosElegidos() throws Exception {
+    Turno turno = new Turno();
+    when(servicioTurno.buscarTurnoDeVeterinaria(veterinaria, TURNO_ID)).thenReturn(turno);
+
+    controlador.finalizar(
+      TURNO_ID,
+      null,
+      null,
+      "Observaciones",
+      List.of(2L, 3L),
+      sesion,
+      new RedirectAttributesModelMap()
+    );
+
+    verify(servicioCobroTurno)
+      .finalizarConAdicionales(veterinaria, TURNO_ID, "Observaciones", List.of(2L, 3L));
+  }
+
+  @Test
+  public void cobroDeberiaCalcularLoQuePagaElSocioConLosExtrasElegidos() throws Exception {
+    CobroTurno cobro = new CobroTurno(List.of());
+    when(servicioCobroTurno.calcularCobro(veterinaria, TURNO_ID, List.of(2L))).thenReturn(cobro);
+
+    ModelAndView mav = controlador.cobro(TURNO_ID, List.of(2L), sesion);
+
+    assertThat(mav.getViewName(), equalTo("finalizar-turno :: cobro"));
+    assertThat(mav.getModel().get("cobro"), is(cobro));
+  }
+
+  @Test
+  public void cobroConUnTurnoInvalidoDeberiaMostrarElError() throws Exception {
+    when(servicioCobroTurno.calcularCobro(veterinaria, TURNO_ID, null))
+      .thenThrow(new TurnoInvalido("No encontramos ese turno"));
+
+    ModelAndView mav = controlador.cobro(TURNO_ID, null, sesion);
+
+    assertThat(mav.getModel().get("errorCobro"), equalTo("No encontramos ese turno"));
+    assertThat(mav.getModel().get("cobro"), is(nullValue()));
+  }
+
+  @Test
+  public void cobroSinSesionDeVeterinariaDeberiaVolverAlHome() {
+    when(sesion.getAttribute(ControladorLogin.ROL)).thenReturn("SOCIO");
+
+    assertThat(controlador.cobro(TURNO_ID, null, sesion).getViewName(), equalTo("redirect:/home"));
+    verifyNoInteractions(servicioCobroTurno);
   }
 
   @Test

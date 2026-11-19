@@ -57,10 +57,58 @@
                 </div>
 
                 <div>
-                    <label for="precioParticular" class="form-label">Precio particular de la prestación</label>
-                    <input id="precioParticular" name="precioParticular" type="number" min="0" step="0.01"
-                           class="form-control" style="max-width: 14rem" placeholder="Ej.: 15000" />
-                    <div class="form-text">Lo que habría costado sin plan. Se usa en el simulador de planes.</div>
+                    <span class="form-label d-block">Servicios adicionales realizados</span>
+                    <div id="extras"
+                         th:attr="data-url=@{/veterinaria/turnos/{id}/cobro(id=${turno.id})}">
+                        <select id="extra-select" class="form-select" aria-label="Agregar un servicio">
+                            <option value="">Agregar un servicio…</option>
+                            <option th:each="s : ${serviciosExtra}" th:if="${s.precioParticular != null}"
+                                    th:value="${s.id}" th:attr="data-nombre=${s.nombre}"
+                                    th:text="${s.nombre} + ' · $' + ${#numbers.formatDecimal(s.precioParticular, 1, 'POINT', 0, 'COMMA')}">Radiografía · $15.000</option>
+                        </select>
+                        <div id="extras-elegidos" class="d-flex flex-wrap gap-2 mt-2"></div>
+                    </div>
+                    <div class="form-text">Se suman al precio de la consulta.</div>
+                </div>
+
+                <div id="cobro" th:fragment="cobro" class="border rounded p-3">
+                    <p class="text-danger mb-0" th:if="${errorCobro != null}" th:text="${errorCobro}">Error</p>
+                    <th:block th:if="${cobro != null}">
+                        <table class="table table-sm align-middle mb-2">
+                            <thead>
+                            <tr>
+                                <th>Servicio</th>
+                                <th class="text-end">Precio particular</th>
+                                <th class="text-end">Paga el socio</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="l : ${cobro.lineas}">
+                                <td th:text="${l.servicio}">Consulta clínica</td>
+                                <td class="text-end"
+                                    th:text="'$' + ${#numbers.formatDecimal(l.precioParticular, 1, 'POINT', 0, 'COMMA')}">$8.000</td>
+                                <td class="text-end">
+                                    <span class="text-success fw-bold" th:if="${l.cubierto}">Cubierto</span>
+                                    <span class="fw-bold" style="color:#b26a00" th:if="${l.copago}"
+                                          th:text="'Copago $' + ${#numbers.formatDecimal(l.pagaElSocio, 1, 'POINT', 0, 'COMMA')}">Copago $2.000</span>
+                                    <span class="text-danger fw-bold" th:unless="${l.cubierto or l.copago}"
+                                          th:text="'$' + ${#numbers.formatDecimal(l.pagaElSocio, 1, 'POINT', 0, 'COMMA')}">$15.000</span>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                        <div class="d-flex justify-content-between align-items-end">
+                            <div>
+                                <small class="mp-suave d-block">Total precio particular</small>
+                                <span th:text="'$' + ${#numbers.formatDecimal(cobro.totalParticular, 1, 'POINT', 0, 'COMMA')}">$23.000</span>
+                            </div>
+                            <div class="text-end">
+                                <small class="mp-suave d-block">El socio debe pagar</small>
+                                <strong class="fs-4"
+                                        th:text="'$' + ${#numbers.formatDecimal(cobro.totalSocio, 1, 'POINT', 0, 'COMMA')}">$17.000</strong>
+                            </div>
+                        </div>
+                    </th:block>
                 </div>
 
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
@@ -125,6 +173,56 @@
             } else {
                 fila.querySelectorAll("input").forEach(function (input) { input.value = ""; });
             }
+        });
+    })();
+
+    (function () {
+        // Elegir un servicio del desplegable lo agrega como etiqueta y recalcula lo que paga el socio.
+        var extras = document.getElementById("extras");
+        var select = document.getElementById("extra-select");
+        var elegidos = document.getElementById("extras-elegidos");
+        if (!extras || !select || !elegidos) return;
+
+        function recalcular() {
+            var params = new URLSearchParams();
+            elegidos.querySelectorAll("input[name=extra]").forEach(function (c) {
+                params.append("extra", c.value);
+            });
+            fetch(extras.dataset.url + "?" + params.toString())
+                .then(function (respuesta) { return respuesta.text(); })
+                .then(function (html) { document.getElementById("cobro").outerHTML = html; });
+        }
+
+        select.addEventListener("change", function () {
+            var opcion = select.options[select.selectedIndex];
+            if (!opcion.value) return;
+            var etiqueta = document.createElement("span");
+            etiqueta.className = "badge text-bg-light border d-inline-flex align-items-center gap-2 fs-6 fw-normal";
+            etiqueta.dataset.id = opcion.value;
+            etiqueta.appendChild(document.createTextNode(opcion.dataset.nombre));
+            var oculto = document.createElement("input");
+            oculto.type = "hidden";
+            oculto.name = "extra";
+            oculto.value = opcion.value;
+            etiqueta.appendChild(oculto);
+            var quitar = document.createElement("button");
+            quitar.type = "button";
+            quitar.className = "btn-close";
+            quitar.setAttribute("aria-label", "Quitar " + opcion.dataset.nombre);
+            etiqueta.appendChild(quitar);
+            elegidos.appendChild(etiqueta);
+            opcion.disabled = true;
+            select.value = "";
+            recalcular();
+        });
+
+        elegidos.addEventListener("click", function (evento) {
+            var boton = evento.target.closest(".btn-close");
+            if (!boton) return;
+            var etiqueta = boton.closest("[data-id]");
+            select.querySelector("option[value='" + etiqueta.dataset.id + "']").disabled = false;
+            etiqueta.remove();
+            recalcular();
         });
     })();
 </script>
