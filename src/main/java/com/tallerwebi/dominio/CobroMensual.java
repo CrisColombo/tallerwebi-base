@@ -23,6 +23,13 @@ public class CobroMensual {
     return Math.min(precioParticular, plan.copagoPorAtencion());
   }
 
+  /** Cuenta una atención ya realizada, solo para que gaste cupo del tope del mes. */
+  public void registrar(Servicio servicio) {
+    if (plan != null && plan.cubre(servicio)) {
+      cubiertas++;
+    }
+  }
+
   public int getCubiertas() {
     return cubiertas;
   }

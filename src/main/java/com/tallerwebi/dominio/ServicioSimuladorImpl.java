@@ -79,46 +79,48 @@ public class ServicioSimuladorImpl implements ServicioSimulador {
     return elegidas;
   }
 
-  /** Para cada atención calcula lo que se paga con cada plan. Van en orden de fecha. */
+  /**
+   * Cada servicio del turno (el principal y los extras) es una atención propia.
+   * Van en orden de fecha, y dentro de un turno primero el principal.
+   */
   private List<ItemAtencion> armarItems(List<Turno> turnos, List<Plan> planes) {
-    Map<Long, Map<YearMonth, Integer>> cubiertasPorMes = new HashMap<>();
+    Map<Long, Map<YearMonth, CobroMensual>> cobros = new HashMap<>();
     List<ItemAtencion> items = new ArrayList<>();
     for (Turno turno : turnos) {
-      Map<Long, Double> pagoPorPlan = new HashMap<>();
-      for (Plan plan : planes) {
-        pagoPorPlan.put(plan.getId(), pagoCon(plan, turno, cubiertasPorMes));
-      }
       items.add(
-        new ItemAtencion(
+        armarItem(
           turno.getFecha(),
-          turno.getServicio().getNombre(),
+          turno.getServicio(),
           turno.getPrecioParticular(),
-          pagoPorPlan
+          planes,
+          cobros
         )
       );
+      for (AtencionAdicional extra : turno.getAdicionales()) {
+        items.add(
+          armarItem(turno.getFecha(), extra.getServicio(), extra.getPrecio(), planes, cobros)
+        );
+      }
     }
     return items;
   }
 
-  /**
-   * Lo que el dueño paga por una atención con un plan:
-   * si el plan no la cubre o ya pasó el tope del mes, el precio particular completo;
-   * si la cubre dentro del tope, solo el copago (nunca más que el precio).
-   */
-  private double pagoCon(Plan plan, Turno turno, Map<Long, Map<YearMonth, Integer>> cubiertas) {
-    double precio = turno.getPrecioParticular();
-    if (!plan.cubre(turno.getServicio())) {
-      return precio;
+  /** Lo que se paga por una atención con cada plan, según tope y copago del mes. */
+  private ItemAtencion armarItem(
+    LocalDate fecha,
+    Servicio servicio,
+    double precio,
+    List<Plan> planes,
+    Map<Long, Map<YearMonth, CobroMensual>> cobros
+  ) {
+    Map<Long, Double> pagoPorPlan = new HashMap<>();
+    for (Plan plan : planes) {
+      CobroMensual cobro = cobros
+        .computeIfAbsent(plan.getId(), id -> new HashMap<>())
+        .computeIfAbsent(YearMonth.from(fecha), mes -> new CobroMensual(plan, 0));
+      pagoPorPlan.put(plan.getId(), cobro.cobrar(servicio, precio));
     }
-    Map<YearMonth, Integer> delPlan = cubiertas.computeIfAbsent(
-      plan.getId(),
-      id -> new HashMap<>()
-    );
-    int numeroEnElMes = delPlan.merge(YearMonth.from(turno.getFecha()), 1, Integer::sum);
-    if (!plan.dentroDelTope(numeroEnElMes)) {
-      return precio;
-    }
-    return Math.min(precio, plan.copagoPorAtencion());
+    return new ItemAtencion(fecha, servicio.getNombre(), precio, pagoPorPlan);
   }
 
   private ResultadoPlan armarResultado(

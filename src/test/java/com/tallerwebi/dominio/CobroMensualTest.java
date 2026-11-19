@@ -68,6 +68,18 @@ public class CobroMensualTest {
     assertThat(cobro.cobrar(consulta, 1500.0), equalTo(1500.0));
   }
 
+  @Test
+  public void deberiaGastarCupoAlRegistrarUnaAtencionYaRealizada() {
+    CobroMensual cobro = new CobroMensual(basico, 0);
+
+    cobro.registrar(consulta);
+    cobro.registrar(consulta);
+    cobro.registrar(cirugia);
+
+    assertThat(cobro.getCubiertas(), equalTo(2));
+    assertThat(cobro.cobrar(consulta, 8000.0), equalTo(8000.0));
+  }
+
   private Servicio dadoUnServicio(Integer nivelRequerido) {
     Servicio servicio = new Servicio();
     servicio.setNivelRequerido(nivelRequerido);
