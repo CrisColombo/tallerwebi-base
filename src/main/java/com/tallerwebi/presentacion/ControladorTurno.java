@@ -36,6 +36,7 @@ public class ControladorTurno extends ControladorConSocio {
   private ServicioCobertura servicioCobertura;
   private ServicioResena servicioResena;
   private ServicioReceta servicioReceta;
+  private ServicioCobroTurno servicioCobroTurno;
 
   @Autowired
   public ControladorTurno(
@@ -52,6 +53,11 @@ public class ControladorTurno extends ControladorConSocio {
     this.servicioCobertura = servicioCobertura;
     this.servicioResena = servicioResena;
     this.servicioReceta = servicioReceta;
+  }
+
+  @Autowired(required = false)
+  public void setServicioCobroTurno(ServicioCobroTurno servicioCobroTurno) {
+    this.servicioCobroTurno = servicioCobroTurno;
   }
 
   /**
@@ -188,10 +194,21 @@ public class ControladorTurno extends ControladorConSocio {
     );
     modelo.put("horarios", servicioTurno.horariosDisponibles(veterinaria, solicitud.getFecha()));
     modelo.put("hoy", LocalDate.now());
+    AvisoCobro aviso = avisoDeCobro(elegida, solicitud);
+    if (aviso != null) {
+      modelo.put("aviso", aviso);
+    }
     if (error != null) {
       modelo.put(ERROR, error);
     }
     return new ModelAndView("nuevo-turno", modelo);
+  }
+
+  private AvisoCobro avisoDeCobro(Mascota mascota, SolicitudTurno solicitud) {
+    if (servicioCobroTurno == null || mascota == null) {
+      return null;
+    }
+    return servicioCobroTurno.avisoPara(mascota, solicitud.getServicioId(), solicitud.getFecha());
   }
 
   private Map<Long, Boolean> mapaResenasPorTurno(List<Turno> turnos) {
