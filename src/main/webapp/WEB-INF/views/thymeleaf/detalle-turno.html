@@ -99,6 +99,9 @@
       </th:block>
 
       <th:block th:if="${esVeterinaria and turno.estado.name() != 'CANCELADO'}">
+        <a id="btn-ver-mascota" class="btn btn-outline-secondary" th:href="@{${urlTurno + '/mascota'}}">
+          <i class="bi bi-heart-pulse" aria-hidden="true"></i> Ver mascota
+        </a>
         <a class="btn btn-outline-secondary" th:href="@{${urlTurno + '/historial'}}">
           <i class="bi bi-journal-medical" aria-hidden="true"></i> Historial clínico
         </a>
