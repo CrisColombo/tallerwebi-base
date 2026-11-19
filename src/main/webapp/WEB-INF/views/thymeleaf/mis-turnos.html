@@ -129,7 +129,9 @@
             </div>
             <div class="mp-turno__info">
               <p class="mb-0">
-                <strong th:text="${t.mascota.nombre}">Michi</strong> ·
+                <a class="text-reset text-decoration-none" title="Ver perfil de la mascota"
+                  th:href="@{/mascotas/{id}(id=${t.mascota.id})}"><strong th:text="${t.mascota.nombre}">Michi</strong>
+                </a> ·
                 <span th:text="${t.servicio.nombre}">Dermatología</span>
                 <span class="mp-estado" th:classappend="'mp-estado--' + ${#strings.toLowerCase(t.estado)}"
                   th:text="${t.estado.name() == 'CONFIRMADO'} ? 'Confirmado' : (${t.estado.name() == 'FINALIZADO'} ? 'Atendido' : 'Cancelado')">Confirmado</span>
@@ -137,6 +139,7 @@
               <small class="mp-suave" th:text="${t.veterinaria.nombre}">Clínica</small>
             </div>
             <div class="mp-turno__acciones">
+              <a class="btn btn-outline-secondary btn-sm" th:href="@{/turnos/{id}(id=${t.id})}">Ver detalle</a>
               <th:block th:if="${t.estaConfirmado()}">
                 <a class="btn btn-outline-primary btn-sm" th:href="@{/turnos/{id}/reprogramar(id=${t.id})}">Reprogramar</a>
                 <form th:action="@{/turnos/{id}/cancelar(id=${t.id})}" method="POST"

@@ -9,4 +9,5 @@ public interface ServicioReceta {
   void marcarComprada(Socio socio, Long recetaId) throws TurnoInvalido;
   List<RecetasDeConsulta> medicacionAnterior(Veterinaria veterinaria, Turno turno)
     throws TurnoInvalido;
+  List<Receta> recetasDelTurno(Turno turno);
 }

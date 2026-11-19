@@ -1,0 +1,135 @@
+<!DOCTYPE HTML>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/layout :: head('Detalle del turno')}"></head>
+
+<body>
+
+  <header th:replace="~{fragments/layout :: encabezado('Detalle del turno', ${esVeterinaria} ? 'Toda la información del turno de tu paciente.' : 'Toda la información de tu turno.')}"></header>
+
+  <main role="main" class="mp-main mp-main--angosto">
+
+    <section id="detalle-turno" class="mp-card">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h5 mb-0" th:text="${turno.servicio.nombre}">Consulta clínica</h2>
+        <span id="estado-turno" class="mp-estado" th:classappend="'mp-estado--' + ${#strings.toLowerCase(turno.estado)}"
+          th:text="${turno.estado.name() == 'CONFIRMADO'} ? 'Confirmado' : (${turno.estado.name() == 'FINALIZADO'} ? 'Atendido' : 'Cancelado')">Confirmado</span>
+      </div>
+
+      <dl class="mp-turno-actual">
+        <div>
+          <dt>Fecha y hora</dt>
+          <dd th:text="${#temporals.format(turno.fecha, 'dd/MM/yyyy')} + ' · ' + ${#temporals.format(turno.hora, 'HH:mm')}">15/10/2026 · 10:00</dd>
+        </div>
+        <div>
+          <dt>Mascota</dt>
+          <dd>
+            <span th:text="${turno.mascota.nombre}">Luna</span>
+            <small class="text-muted"
+              th:text="'(' + ${#strings.capitalize(#strings.toLowerCase(turno.mascota.especie))} + (${turno.mascota.raza != null and !#strings.isEmpty(turno.mascota.raza)} ? ' · ' + ${turno.mascota.raza} : '') + ')'">(Perro · Caniche)</small>
+          </dd>
+        </div>
+        <div th:if="${turno.mascota.plan != null}">
+          <dt>Plan de la mascota</dt>
+          <dd th:text="${turno.mascota.plan.nombre}">Plan Básico</dd>
+        </div>
+
+        <!-- La veterinaria ve los datos del dueño; el socio ve los de la veterinaria -->
+        <div th:if="${esVeterinaria}">
+          <dt>Socio</dt>
+          <dd>
+            <span th:text="${turno.mascota.socio.nombre} + ' ' + ${turno.mascota.socio.apellido}">Juan Pérez</span>
+            <small class="text-muted d-block" th:text="${turno.mascota.socio.telefono}">11-5555-5555</small>
+          </dd>
+        </div>
+        <div th:unless="${esVeterinaria}">
+          <dt>Veterinaria</dt>
+          <dd>
+            <span th:text="${turno.veterinaria.nombre}">Veterinaria San Justo</span>
+            <small class="text-muted d-block" th:text="${turno.veterinaria.direccion}">Calle 123</small>
+            <small class="text-muted d-block" th:text="${turno.veterinaria.telefono}">4444-1111</small>
+          </dd>
+        </div>
+
+        <div th:if="${turno.precioParticular != null}">
+          <dt>Precio particular</dt>
+          <dd th:text="'$ ' + ${#numbers.formatDecimal(turno.precioParticular, 1, 'POINT', 2, 'COMMA')}">$ 15.000,00</dd>
+        </div>
+        <div th:if="${turno.observaciones != null and !#strings.isEmpty(turno.observaciones)}">
+          <dt>Comentario al reservar</dt>
+          <dd th:text="${turno.observaciones}">Le cuesta caminar</dd>
+        </div>
+      </dl>
+    </section>
+
+    <!-- Resultado de la consulta: solo si ya fue atendido -->
+    <section id="resultado-consulta" class="mp-card mt-3" th:if="${turno.estaFinalizado()}">
+      <h2 class="h6">Observaciones del profesional</h2>
+      <p th:if="${turno.observacionesProfesional != null and !#strings.isEmpty(turno.observacionesProfesional)}"
+        th:text="${turno.observacionesProfesional}">Se indicó reposo.</p>
+      <p th:unless="${turno.observacionesProfesional != null and !#strings.isEmpty(turno.observacionesProfesional)}"
+        class="text-muted">Sin observaciones.</p>
+
+      <h2 class="h6 mt-3">Recetas</h2>
+      <p th:if="${#lists.isEmpty(recetas)}" class="text-muted mb-0">No se recetaron medicamentos.</p>
+      <ul th:unless="${#lists.isEmpty(recetas)}" id="recetas-turno" class="list-unstyled mb-0">
+        <li th:each="r : ${recetas}" class="mb-2">
+          <i class="bi bi-capsule" aria-hidden="true"></i>
+          <strong th:text="${r.medicamento}">Otomax</strong>
+          <span th:if="${r.indicaciones != null and !#strings.isEmpty(r.indicaciones)}"
+            th:text="' — ' + ${r.indicaciones}"> — 2 gotas cada 12 hs</span>
+          <span class="badge ms-1" th:classappend="${r.estaPendiente()} ? 'text-bg-warning' : 'text-bg-success'"
+            th:text="${r.estaPendiente()} ? 'Pendiente' : 'Comprada'">Pendiente</span>
+        </li>
+      </ul>
+    </section>
+
+    <!-- Acciones según rol y estado -->
+    <div class="d-flex flex-wrap gap-2 mt-3">
+
+      <th:block th:if="${turno.estaConfirmado()}">
+        <a id="btn-reprogramar" class="btn btn-outline-primary" th:href="@{${urlTurno + '/reprogramar'}}">Reprogramar</a>
+        <form th:action="@{${urlTurno + '/cancelar'}}" method="POST"
+          onsubmit="return confirm('¿Seguro que querés cancelar este turno?');">
+          <button id="btn-cancelar" class="btn btn-outline-danger" type="submit">Cancelar</button>
+        </form>
+        <a th:if="${esVeterinaria}" id="btn-finalizar" class="btn btn-primary" th:href="@{${urlTurno + '/finalizar'}}">
+          <i class="bi bi-check2-circle" aria-hidden="true"></i> Finalizar consulta
+        </a>
+      </th:block>
+
+      <th:block th:if="${esVeterinaria and turno.estado.name() != 'CANCELADO'}">
+        <a id="btn-ver-mascota" class="btn btn-outline-secondary" th:href="@{${urlTurno + '/mascota'}}">
+          <i class="bi bi-heart-pulse" aria-hidden="true"></i> Ver mascota
+        </a>
+        <a class="btn btn-outline-secondary" th:href="@{${urlTurno + '/historial'}}">
+          <i class="bi bi-journal-medical" aria-hidden="true"></i> Historial clínico
+        </a>
+        <a class="btn btn-outline-secondary" th:href="@{${urlTurno + '/medicacion'}}">
+          <i class="bi bi-capsule" aria-hidden="true"></i> Medicación anterior
+        </a>
+      </th:block>
+
+      <!-- Reseña: reutiliza el panel de Mis turnos (se abre solo con el #resena-panel-ID) -->
+      <th:block th:if="${!esVeterinaria and turno.estaFinalizado()}">
+        <span th:if="${resenado}" class="mp-estado mp-estado--confirmado align-self-center">
+          <i class="bi bi-star-fill" aria-hidden="true"></i> Reseña enviada
+        </span>
+        <a th:unless="${resenado}" id="btn-resena" class="btn btn-outline-primary"
+          th:href="@{/turnos(vista='atendidos')} + '#resena-panel-' + ${turno.id}">
+          <i class="bi bi-star" aria-hidden="true"></i> Dejar reseña
+        </a>
+      </th:block>
+
+      <a class="btn btn-link" th:href="@{${urlVolver}}"
+        th:text="${esVeterinaria} ? 'Volver a turnos recibidos' : 'Volver a mis turnos'">Volver a mis turnos</a>
+    </div>
+  </main>
+
+  <footer th:replace="~{fragments/layout :: pie}"></footer>
+
+  <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+
+</body>
+
+</html>

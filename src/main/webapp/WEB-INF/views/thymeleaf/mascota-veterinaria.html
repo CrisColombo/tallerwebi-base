@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+  <head th:replace="~{fragments/layout :: head('Perfil de mascota')}"></head>
+
+  <body>
+    <header
+      th:replace="~{fragments/layout :: encabezado(${mascota.nombre}, ${#strings.capitalize(#strings.toLowerCase(mascota.especie))} + (${mascota.raza != null and !#strings.isEmpty(mascota.raza)} ? ' · ' + ${mascota.raza} : '') + (${mascota.edad != null} ? ' · ' + ${mascota.edad} + (${mascota.edad == 1} ? ' año' : ' años') : '') + (${mascota.peso != null} ? ' · ' + ${mascota.peso} + ' kg' : ''))}"
+    ></header>
+
+    <main role="main" class="mp-main">
+      <nav class="mp-migas" aria-label="Ubicación">
+        <a th:href="@{/veterinaria/turnos}">Mis turnos</a>
+        <i class="bi bi-chevron-right" aria-hidden="true"></i>
+        <a th:href="@{/veterinaria/turnos/{id}(id=${turno.id})}">Turno del <span th:text="${#temporals.format(turno.fecha, 'dd/MM')}">14/11</span></a>
+        <i class="bi bi-chevron-right" aria-hidden="true"></i>
+        <strong th:text="${mascota.nombre}">Firulais</strong>
+      </nav>
+
+      <!-- Ficha: solo lectura -->
+      <div class="mp-ficha" id="ficha-mascota">
+        <span class="mp-avatar mp-avatar--grande" th:classappend="'mp-avatar--' + ${#strings.toLowerCase(mascota.especie)}"
+          th:text="${#strings.substring(mascota.nombre, 0, 1)}">F</span>
+        <div class="mp-ficha__datos">
+          <span class="badge mp-badge-plan" th:text="${mascota.plan != null} ? ${mascota.plan.nombre} : 'Sin plan'">Plan</span>
+          <span th:if="${mascota.suscripcionAlDia()}" class="mp-estado mp-estado--confirmado">Plan al día</span>
+          <span th:unless="${mascota.suscripcionAlDia()}" class="mp-estado mp-estado--pendiente">Sin plan vigente</span>
+        </div>
+        <a class="btn btn-outline-primary ms-auto" th:href="@{/veterinaria/turnos/{id}(id=${turno.id})}">Volver al turno</a>
+      </div>
+
+      <div class="row g-4">
+        <div class="col-lg-7 d-grid gap-4 align-content-start">
+
+          <!-- Dueño -->
+          <div class="mp-card" id="duenio-mascota">
+            <h2 class="mp-seccion-titulo">Dueño</h2>
+            <p class="mb-0">
+              <strong th:text="${mascota.socio.nombre} + ' ' + ${mascota.socio.apellido}">Juan Pérez</strong>
+              <small class="mp-suave d-block" th:text="${mascota.socio.telefono}">11-5555-5555</small>
+            </p>
+          </div>
+
+          <!-- Medicamentos recetados (de cualquier veterinaria) -->
+          <div class="mp-card" id="recetas">
+            <h2 class="mp-seccion-titulo">Medicamentos</h2>
+            <p th:if="${#lists.isEmpty(recetas)}" class="mp-suave mb-0"
+              th:text="${mascota.nombre} + ' todavía no tiene recetas.'">Sin recetas.</p>
+            <div class="mp-receta-consulta" th:each="c : ${recetas}">
+              <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
+                <strong th:text="${c.turno.servicio.nombre} + ' · ' + ${#temporals.format(c.turno.fecha, 'dd/MM/yyyy')}">Consulta · 05/11/2026</strong>
+                <small class="mp-suave" th:text="${c.turno.veterinaria.nombre}">Veterinaria</small>
+              </div>
+              <ul class="mp-lista">
+                <li class="mp-medicamento" th:each="r : ${c.recetas}">
+                  <span class="mp-medicamento__icono" th:classappend="${r.estaPendiente()} ? '' : 'es-comprado'">
+                    <i class="bi" th:classappend="${r.estaPendiente()} ? 'bi-capsule' : 'bi-check2'" aria-hidden="true"></i>
+                  </span>
+                  <span>
+                    <strong th:text="${r.medicamento}">Amoxicilina</strong>
+                    <small class="mp-suave d-block" th:if="${!#strings.isEmpty(r.indicaciones)}" th:text="${r.indicaciones}">Cada 12 horas</small>
+                  </span>
+                  <span th:if="${r.estaPendiente()}" class="mp-estado mp-estado--pendiente">Sin comprar</span>
+                  <span th:unless="${r.estaPendiente()}" class="mp-estado mp-estado--confirmado"
+                    th:text="'Comprado ' + ${#temporals.format(r.fechaCompra, 'dd/MM')}">Comprado</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Historial clínico en línea de tiempo -->
+        <div class="col-lg-5">
+          <div class="mp-card" id="historial-clinico">
+            <h2 class="mp-seccion-titulo">Historial clínico</h2>
+            <p th:if="${#lists.isEmpty(atenciones)}" class="mp-suave mb-0"
+              th:text="${mascota.nombre} + ' todavía no tiene atenciones registradas.'">Sin atenciones.</p>
+            <ol class="mp-linea" th:unless="${#lists.isEmpty(atenciones)}">
+              <li th:each="t : ${atenciones}">
+                <strong th:text="${t.servicio.nombre}">Consulta clínica</strong>
+                <small class="mp-suave d-block" th:text="${#temporals.format(t.fecha, 'dd/MM/yyyy')} + ' · ' + ${t.veterinaria.nombre}">05/11/2026 · Clínica</small>
+                <p class="mb-0 mt-1" th:if="${!#strings.isEmpty(t.observacionesProfesional)}" th:text="${t.observacionesProfesional}">Observaciones.</p>
+                <p class="mb-0 mt-1 mp-suave fst-italic" th:if="${#strings.isEmpty(t.observacionesProfesional)}">Sin observaciones.</p>
+              </li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer th:replace="~{fragments/layout :: pie}"></footer>
+
+    <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+  </body>
+</html>

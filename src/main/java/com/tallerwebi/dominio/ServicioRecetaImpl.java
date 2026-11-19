@@ -63,6 +63,12 @@ public class ServicioRecetaImpl implements ServicioReceta {
     return agruparPorConsulta(repositorioReceta.listarPorMascota(turno.getMascota().getId()));
   }
 
+  // El permiso sobre el turno ya lo valida el controlador al buscarlo (socio o veterinaria).
+  @Override
+  public List<Receta> recetasDelTurno(Turno turno) {
+    return repositorioReceta.listarPorTurno(turno.getId());
+  }
+
   private static List<RecetasDeConsulta> agruparPorConsulta(List<Receta> recetas) {
     Map<Long, RecetasDeConsulta> porConsulta = new LinkedHashMap<>();
     for (Receta receta : recetas) {

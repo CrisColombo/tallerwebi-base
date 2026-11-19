@@ -249,6 +249,56 @@ public class ControladorPanelVeterinaria extends ControladorConVeterinaria {
     }
   }
 
+  @RequestMapping(path = "/veterinaria/turnos/{id}", method = RequestMethod.GET)
+  public ModelAndView detalle(
+    @PathVariable("id") Long turnoId,
+    HttpSession sesion,
+    RedirectAttributes redirectAttributes
+  ) {
+    Veterinaria veterinaria = veterinariaLogueada(sesion);
+    if (veterinaria == null) {
+      return new ModelAndView(REDIRECT_HOME);
+    }
+    try {
+      Turno turno = servicioTurno.buscarTurnoDeVeterinaria(veterinaria, turnoId);
+      Map<String, Object> modelo = new ModelMap();
+      modelo.put(TURNO, turno);
+      modelo.put("recetas", servicioReceta.recetasDelTurno(turno));
+      modelo.put("esVeterinaria", true);
+      modelo.put("urlTurno", "/veterinaria/turnos/" + turnoId);
+      modelo.put("urlVolver", "/veterinaria/turnos");
+      return new ModelAndView("detalle-turno", modelo);
+    } catch (TurnoInvalido e) {
+      redirectAttributes.addFlashAttribute(ERROR, e.getMessage());
+      return new ModelAndView(REDIRECT_TURNOS);
+    }
+  }
+
+  @RequestMapping(path = "/veterinaria/turnos/{id}/mascota", method = RequestMethod.GET)
+  public ModelAndView perfilMascota(
+    @PathVariable("id") Long turnoId,
+    HttpSession sesion,
+    RedirectAttributes redirectAttributes
+  ) {
+    Veterinaria veterinaria = veterinariaLogueada(sesion);
+    if (veterinaria == null) {
+      return new ModelAndView(REDIRECT_HOME);
+    }
+    try {
+      // Se entra desde un turno: si el turno no es de esta veterinaria, no ve la mascota.
+      Turno turno = servicioTurno.buscarTurnoDeVeterinaria(veterinaria, turnoId);
+      Map<String, Object> modelo = new ModelMap();
+      modelo.put(TURNO, turno);
+      modelo.put("mascota", turno.getMascota());
+      modelo.put("atenciones", servicioTurno.historialClinicoDe(veterinaria, turnoId));
+      modelo.put("recetas", servicioReceta.medicacionAnterior(veterinaria, turno));
+      return new ModelAndView("mascota-veterinaria", modelo);
+    } catch (TurnoInvalido e) {
+      redirectAttributes.addFlashAttribute(ERROR, e.getMessage());
+      return new ModelAndView(REDIRECT_TURNOS);
+    }
+  }
+
   @RequestMapping(path = "/veterinaria/turnos/{id}/historial", method = RequestMethod.GET)
   public ModelAndView historialClinico(
     @PathVariable("id") Long turnoId,

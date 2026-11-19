@@ -67,8 +67,13 @@
           </span>
           <span class="mp-avatar" th:classappend="'mp-avatar--' + ${#strings.toLowerCase(t.mascota.especie)}"
             th:text="${#strings.substring(t.mascota.nombre, 0, 1)}">M</span>
-          <span class="mp-agenda__datos">
-            <strong th:text="${t.mascota.nombre}">Mora</strong>
+                    <span class="mp-agenda__datos">
+            <a class="text-reset text-decoration-none"
+              th:with="clickeable=${t.estado.name() != 'CANCELADO'}"
+              th:href="${clickeable} ? @{/veterinaria/turnos/{id}/mascota(id=${t.id})} : null"
+              th:title="${clickeable} ? 'Ver perfil de la mascota' : null">
+              <strong th:text="${t.mascota.nombre}">Mora</strong>
+            </a>
             <span th:text="' · ' + ${#strings.capitalize(#strings.toLowerCase(t.mascota.especie))} + ' · ' + ${t.servicio.nombre}">· Gato · Consulta</span>
             <small class="mp-suave d-block"
               th:text="${t.mascota.socio.nombre} + ' ' + ${t.mascota.socio.apellido} + (${t == agenda.siguiente} ? ' · sigue ahora' : '')">Carla Benítez</small>

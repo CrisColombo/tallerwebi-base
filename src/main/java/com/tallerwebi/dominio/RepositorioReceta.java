@@ -6,4 +6,5 @@ public interface RepositorioReceta {
   void guardar(Receta receta);
   Receta buscarPorId(Long id);
   List<Receta> listarPorMascota(Long mascotaId);
+  List<Receta> listarPorTurno(Long turnoId);
 }

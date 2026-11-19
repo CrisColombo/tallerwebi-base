@@ -48,7 +48,12 @@
                   01/10/2026 10:00
                 </td>
                 <td>
-                  <strong th:text="${t.mascota.nombre}">Mascota</strong>
+                  <a class="text-reset text-decoration-none"
+                    th:with="clickeable=${t.estado.name() != 'CANCELADO'}"
+                    th:href="${clickeable} ? @{/veterinaria/turnos/{id}/mascota(id=${t.id})} : null"
+                    th:title="${clickeable} ? 'Ver perfil de la mascota' : null">
+                    <strong th:text="${t.mascota.nombre}">Mascota</strong>
+                  </a>
                   <div class="small text-muted" th:text="${t.mascota.especie}">
                     Especie
                   </div>
@@ -78,6 +83,14 @@
                   <div
                     class="d-flex flex-nowrap justify-content-end align-items-center gap-2"
                   >
+                    <a
+                      class="btn btn-outline-secondary btn-sm mp-btn-icono"
+                      th:href="@{/veterinaria/turnos/{id}(id=${t.id})}"
+                      title="Ver detalle"
+                      aria-label="Ver detalle"
+                    >
+                      <i class="bi bi-eye" aria-hidden="true"></i>
+                    </a>
                     <a
                       class="btn btn-outline-secondary btn-sm mp-btn-icono"
                       th:unless="${t.estado.name() == 'CANCELADO'}"
