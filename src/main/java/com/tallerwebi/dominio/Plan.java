@@ -19,8 +19,22 @@ public class Plan {
   // 1 = Básico, 2 = Premium. Un plan cubre los servicios de su nivel o menor.
   private Integer nivel;
 
+  // Cuántas atenciones por mes cubre el plan. null = sin tope.
+  private Integer topeMensual;
+
+  // Lo que se paga por cada atención cubierta. null = sin copago.
+  private Double copago;
+
   public boolean cubre(Servicio servicio) {
     return servicio.getNivelRequerido() <= nivel;
+  }
+
+  public boolean dentroDelTope(int numeroDeAtencionEnElMes) {
+    return topeMensual == null || numeroDeAtencionEnElMes <= topeMensual;
+  }
+
+  public double copagoPorAtencion() {
+    return copago == null ? 0 : copago;
   }
 
   public Long getId() {
@@ -61,5 +75,21 @@ public class Plan {
 
   public void setNivel(Integer nivel) {
     this.nivel = nivel;
+  }
+
+  public Integer getTopeMensual() {
+    return topeMensual;
+  }
+
+  public void setTopeMensual(Integer topeMensual) {
+    this.topeMensual = topeMensual;
+  }
+
+  public Double getCopago() {
+    return copago;
+  }
+
+  public void setCopago(Double copago) {
+    this.copago = copago;
   }
 }

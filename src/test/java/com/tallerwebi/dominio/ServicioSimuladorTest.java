@@ -158,6 +158,14 @@ public class ServicioSimuladorTest {
     return turno;
   }
 
+  private Turno[] consultasEnNoviembre(int cantidad) {
+    Turno[] consultas = new Turno[cantidad];
+    for (int i = 0; i < cantidad; i++) {
+      consultas[i] = dadaUnaAtencion(LocalDate.of(2026, 11, i + 1), consulta, 8000.0);
+    }
+    return consultas;
+  }
+
   private Plan dadoUnPlan(Long id, String nombre, Double precio, Integer nivel) {
     Plan plan = new Plan();
     plan.setId(id);
@@ -173,5 +181,106 @@ public class ServicioSimuladorTest {
     servicio.setNombre(nombre);
     servicio.setNivelRequerido(nivelRequerido);
     return servicio;
+  }
+
+  @Test
+  public void deberiaCobrarSoloElCopagoSiLaAtencionEstaCubierta() throws Exception {
+    basico.setCopago(2000.0);
+    dadaUnaMascotaPropiaConAtenciones(dadaUnaAtencion(LocalDate.of(2026, 9, 1), consulta, 8000.0));
+
+    SimulacionPlan simulacion = servicioSimulador.simular(socio, MASCOTA_ID, 12);
+
+    assertThat(simulacion.getAtenciones().get(0).pagoCon(basico.getId()), equalTo(2000.0));
+    assertThat(simulacion.getPlanActual().getNoCubierto(), equalTo(2000.0));
+    assertThat(simulacion.getPlanActual().getTotal(), equalTo(240000.0 + 2000.0));
+  }
+
+  @Test
+  public void noDeberiaCobrarMasQueElPrecioParticularAunqueElCopagoSeaMayor() throws Exception {
+    basico.setCopago(2000.0);
+    dadaUnaMascotaPropiaConAtenciones(dadaUnaAtencion(LocalDate.of(2026, 9, 1), consulta, 1500.0));
+
+    SimulacionPlan simulacion = servicioSimulador.simular(socio, MASCOTA_ID, 12);
+
+    assertThat(simulacion.getAtenciones().get(0).pagoCon(basico.getId()), equalTo(1500.0));
+  }
+
+  @Test
+  public void deberiaCobrarPrecioCompletoLasAtencionesQueSuperanElTopeMensual() throws Exception {
+    basico.setTopeMensual(2);
+    basico.setCopago(2000.0);
+    dadaUnaMascotaPropiaConAtenciones(
+      dadaUnaAtencion(LocalDate.of(2026, 9, 1), consulta, 8000.0),
+      dadaUnaAtencion(LocalDate.of(2026, 9, 2), consulta, 8000.0),
+      dadaUnaAtencion(LocalDate.of(2026, 9, 3), consulta, 8000.0)
+    );
+
+    SimulacionPlan simulacion = servicioSimulador.simular(socio, MASCOTA_ID, 12);
+
+    // 2000 + 2000 (dentro del tope) + 8000 (la tercera ya no está cubierta)
+    assertThat(simulacion.getPlanActual().getNoCubierto(), equalTo(12000.0));
+  }
+
+  @Test
+  public void deberiaReiniciarElTopeCadaMes() throws Exception {
+    basico.setTopeMensual(1);
+    basico.setCopago(2000.0);
+    dadaUnaMascotaPropiaConAtenciones(
+      dadaUnaAtencion(LocalDate.of(2026, 9, 1), consulta, 8000.0),
+      dadaUnaAtencion(LocalDate.of(2026, 10, 1), consulta, 8000.0)
+    );
+
+    SimulacionPlan simulacion = servicioSimulador.simular(socio, MASCOTA_ID, 12);
+
+    assertThat(simulacion.getPlanActual().getNoCubierto(), equalTo(4000.0));
+  }
+
+  @Test
+  public void noDeberiaGastarElTopeConAtencionesQueElPlanNoCubre() throws Exception {
+    basico.setTopeMensual(1);
+    dadaUnaMascotaPropiaConAtenciones(
+      dadaUnaAtencion(LocalDate.of(2026, 9, 1), cirugia, 400000.0),
+      dadaUnaAtencion(LocalDate.of(2026, 9, 2), consulta, 8000.0),
+      dadaUnaAtencion(LocalDate.of(2026, 9, 3), consulta, 8000.0)
+    );
+
+    SimulacionPlan simulacion = servicioSimulador.simular(socio, MASCOTA_ID, 12);
+
+    // cirugía: 400000 (no cubierta); 1ª consulta: 0 (usa el único cupo); 2ª consulta: 8000
+    assertThat(simulacion.getPlanActual().getNoCubierto(), equalTo(408000.0));
+  }
+
+  @Test
+  public void noDeberiaAplicarTopeNiCopagoAUnPlanQueNoLosTiene() throws Exception {
+    dadaUnaMascotaPropiaConAtenciones(
+      dadaUnaAtencion(LocalDate.of(2026, 9, 1), cirugia, 8000.0),
+      dadaUnaAtencion(LocalDate.of(2026, 9, 2), cirugia, 8000.0),
+      dadaUnaAtencion(LocalDate.of(2026, 9, 3), cirugia, 8000.0)
+    );
+
+    SimulacionPlan simulacion = servicioSimulador.simular(socio, MASCOTA_ID, 12);
+
+    assertThat(simulacion.getResultados().get(1).getPlan(), is(premium));
+    assertThat(simulacion.getResultados().get(1).getNoCubierto(), equalTo(0.0));
+  }
+
+  @Test
+  public void deberiaConvenirElBasicoHastaSeisAtencionesEnElMesYPremiumDesdeLaSeptima()
+    throws Exception {
+    basico.setTopeMensual(4);
+    basico.setCopago(2000.0);
+
+    // Con 1 solo mes: cuota Básico 20000, cuota Premium 50000.
+    dadaUnaMascotaPropiaConAtenciones(consultasEnNoviembre(6));
+    SimulacionPlan conSeis = servicioSimulador.simular(socio, MASCOTA_ID, 1);
+    // 20000 + 4 x 2000 + 2 x 8000 = 44000
+    assertThat(conSeis.getPlanActual().getTotal(), equalTo(44000.0));
+    assertThat(conSeis.getMasConveniente().getPlan(), is(basico));
+
+    dadaUnaMascotaPropiaConAtenciones(consultasEnNoviembre(7));
+    SimulacionPlan conSiete = servicioSimulador.simular(socio, MASCOTA_ID, 1);
+    // 20000 + 4 x 2000 + 3 x 8000 = 52000, contra 50000 del Premium
+    assertThat(conSiete.getPlanActual().getTotal(), equalTo(52000.0));
+    assertThat(conSiete.getMasConveniente().getPlan(), is(premium));
   }
 }

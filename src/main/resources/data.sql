@@ -188,3 +188,6 @@ INSERT IGNORE INTO Resena(id, turno_id, veterinaria_id, socio_id, puntuacion, co
 (402, 211, 1, 2, 4, 'Rápidos y amables. La espera fue un poco larga.', NOW()),
 (403, 218, 8, 3, 5, 'Excelente diagnóstico, Mora se recuperó enseguida.', NOW() - INTERVAL 24 DAY),
 (404, 219, 3, 3, 4, 'Buena atención y precios razonables.', NOW() - INTERVAL 68 DAY);
+
+
+UPDATE Plan SET topeMensual = 4, copago = 2000 WHERE nivel = 1;

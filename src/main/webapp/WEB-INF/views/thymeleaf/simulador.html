@@ -56,7 +56,12 @@
                             Cuota: $<span th:text="${#numbers.formatDecimal(r.plan.precio, 1, 'POINT', 0, 'COMMA')}">20.000</span>
                             × <span th:text="${simulacion.meses}">12</span> meses
                             = $<span th:text="${#numbers.formatDecimal(r.cuotaTotal, 1, 'POINT', 0, 'COMMA')}">240.000</span><br>
-                            Atenciones no cubiertas: $<span th:text="${#numbers.formatDecimal(r.noCubierto, 1, 'POINT', 0, 'COMMA')}">0</span>
+                            Lo que pagás aparte: $<span th:text="${#numbers.formatDecimal(r.noCubierto, 1, 'POINT', 0, 'COMMA')}">0</span>
+                            <br>
+                            <span th:if="${r.plan.topeMensual != null}"
+                                  th:text="'Cubre hasta ' + ${r.plan.topeMensual} + ' atenciones por mes. '"></span>
+                            <span th:if="${r.plan.copago != null and r.plan.copago > 0}"
+                                  th:text="'Copago de $' + ${#numbers.formatDecimal(r.plan.copago, 1, 'POINT', 0, 'COMMA')} + ' por atención.'"></span>
                         </div>
                         <div class="fs-4 fw-bold mt-2">
                             $<span th:text="${#numbers.formatDecimal(r.total, 1, 'POINT', 0, 'COMMA')}">683.000</span>
@@ -81,10 +86,13 @@
                         <td th:text="${#temporals.format(a.fecha, 'dd/MM/yyyy')}">12/01/2026</td>
                         <td th:text="${a.servicio}">Consulta clínica</td>
                         <td class="text-end">$<span th:text="${#numbers.formatDecimal(a.precioParticular, 1, 'POINT', 0, 'COMMA')}">8.000</span></td>
-                        <td th:each="r : ${simulacion.resultados}">
-                            <span class="text-success fw-bold" th:if="${a.cubiertoPor(r.plan.id)}">Cubierto</span>
-                            <span class="text-danger fw-bold" th:unless="${a.cubiertoPor(r.plan.id)}"
-                                  th:text="'Pagás $' + ${#numbers.formatDecimal(a.precioParticular, 1, 'POINT', 0, 'COMMA')}">Pagás $8.000</span>
+                        <td th:each="r : ${simulacion.resultados}" th:with="pago=${a.pagoCon(r.plan.id)}">
+                            <span class="text-success fw-bold" th:if="${pago == 0}">Cubierto</span>
+                            <span class="fw-bold" style="color:#b26a00"
+                                  th:if="${pago > 0 and pago < a.precioParticular}"
+                                  th:text="'Copago $' + ${#numbers.formatDecimal(pago, 1, 'POINT', 0, 'COMMA')}">Copago $2.000</span>
+                            <span class="text-danger fw-bold" th:if="${pago >= a.precioParticular}"
+                                  th:text="'Pagás $' + ${#numbers.formatDecimal(pago, 1, 'POINT', 0, 'COMMA')}">Pagás $8.000</span>
                         </td>
                     </tr>
                     </tbody>
@@ -92,7 +100,8 @@
             </div>
             <div class="form-text">
                 Se calcula con el plan actual para todo el período, a partir de las consultas finalizadas
-                con precio particular cargado.
+                con precio particular cargado. Las atenciones que superan el tope mensual de un plan
+                se pagan a precio particular.
             </div>
         </div>
 
