@@ -13,6 +13,7 @@ import static org.mockito.Mockito.*;
 
 import com.tallerwebi.dominio.AgendaVeterinaria;
 import com.tallerwebi.dominio.DatosReceta;
+import com.tallerwebi.dominio.Receta;
 import com.tallerwebi.dominio.RecetasDeConsulta;
 import com.tallerwebi.dominio.ServicioCobertura;
 import com.tallerwebi.dominio.ServicioReceta;
@@ -561,5 +562,42 @@ public class ControladorPanelVeterinariaTest {
     ArgumentCaptor<List<DatosReceta>> captor = ArgumentCaptor.forClass(List.class);
     verify(servicioReceta).registrar(eq(turno), captor.capture());
     assertThat(captor.getValue().get(1).getIndicaciones(), equalTo(""));
+  }
+
+  @Test
+  public void detalleDeberiaMostrarElTurnoDeLaVeterinaria() throws TurnoInvalido {
+    Turno turno = new Turno();
+    turno.setId(TURNO_ID);
+    List<Receta> recetas = List.of(new Receta(turno, "Otomax", "2 gotas"));
+    when(servicioTurno.buscarTurnoDeVeterinaria(veterinaria, TURNO_ID)).thenReturn(turno);
+    when(servicioReceta.recetasDelTurno(turno)).thenReturn(recetas);
+
+    ModelAndView mav = controlador.detalle(TURNO_ID, sesion, new RedirectAttributesModelMap());
+
+    assertThat(mav.getViewName(), equalTo("detalle-turno"));
+    assertThat(mav.getModel().get("turno"), is(turno));
+    assertThat(mav.getModel().get("recetas"), is(recetas));
+    assertThat(mav.getModel().get("esVeterinaria"), is(true));
+  }
+
+  @Test
+  public void detalleDeUnTurnoAjenoDeberiaVolverATurnosConError() throws TurnoInvalido {
+    RedirectAttributesModelMap redirect = new RedirectAttributesModelMap();
+    when(servicioTurno.buscarTurnoDeVeterinaria(veterinaria, TURNO_ID))
+      .thenThrow(new TurnoInvalido("No encontramos ese turno"));
+
+    ModelAndView mav = controlador.detalle(TURNO_ID, sesion, redirect);
+
+    assertThat(mav.getViewName(), equalTo("redirect:/veterinaria/turnos"));
+    assertThat(redirect.getFlashAttributes().get("error"), equalTo("No encontramos ese turno"));
+  }
+
+  @Test
+  public void detalleSinVeterinariaLogueadaDeberiaVolverAlHome() {
+    when(servicioVeterinaria.buscarPorUsuario(USUARIO_ID)).thenReturn(null);
+
+    ModelAndView mav = controlador.detalle(TURNO_ID, sesion, new RedirectAttributesModelMap());
+
+    assertThat(mav.getViewName(), equalTo("redirect:/home"));
   }
 }

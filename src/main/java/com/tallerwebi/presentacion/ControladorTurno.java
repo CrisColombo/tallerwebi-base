@@ -27,6 +27,7 @@ public class ControladorTurno extends ControladorConSocio {
 
   private static final String REDIRECT_HOME = "redirect:/home";
   private static final String REDIRECT_TURNOS = "redirect:/turnos";
+  private static final String URL_TURNOS = "/turnos";
   private static final String MENSAJE = "mensaje";
   private static final String ERROR = "error";
 
@@ -34,6 +35,7 @@ public class ControladorTurno extends ControladorConSocio {
   private ServicioVeterinaria servicioVeterinaria;
   private ServicioCobertura servicioCobertura;
   private ServicioResena servicioResena;
+  private ServicioReceta servicioReceta;
 
   @Autowired
   public ControladorTurno(
@@ -41,13 +43,15 @@ public class ControladorTurno extends ControladorConSocio {
     ServicioTurno servicioTurno,
     ServicioVeterinaria servicioVeterinaria,
     ServicioCobertura servicioCobertura,
-    ServicioResena servicioResena
+    ServicioResena servicioResena,
+    ServicioReceta servicioReceta
   ) {
     super(servicioSocio);
     this.servicioTurno = servicioTurno;
     this.servicioVeterinaria = servicioVeterinaria;
     this.servicioCobertura = servicioCobertura;
     this.servicioResena = servicioResena;
+    this.servicioReceta = servicioReceta;
   }
 
   /**
@@ -68,7 +72,7 @@ public class ControladorTurno extends ControladorConSocio {
     return vistaNuevoTurno(socio, solicitud, null);
   }
 
-  @RequestMapping(path = "/turnos", method = RequestMethod.POST)
+  @RequestMapping(path = URL_TURNOS, method = RequestMethod.POST)
   public ModelAndView reservar(
     @ModelAttribute("solicitud") SolicitudTurno solicitud,
     HttpSession sesion,
@@ -87,7 +91,7 @@ public class ControladorTurno extends ControladorConSocio {
     return new ModelAndView(REDIRECT_TURNOS);
   }
 
-  @RequestMapping(path = "/turnos", method = RequestMethod.GET)
+  @RequestMapping(path = URL_TURNOS, method = RequestMethod.GET)
   public ModelAndView misTurnos(@ModelAttribute("filtro") FiltroTurnos filtro, HttpSession sesion) {
     Socio socio = socioLogueado(sesion);
     if (socio == null) {
@@ -141,6 +145,32 @@ public class ControladorTurno extends ControladorConSocio {
       redirectAttributes.addFlashAttribute(ERROR, e.getMessage());
     }
     return new ModelAndView(REDIRECT_TURNOS);
+  }
+
+  @RequestMapping(path = "/turnos/{id}", method = RequestMethod.GET)
+  public ModelAndView detalle(
+    @PathVariable("id") Long turnoId,
+    HttpSession sesion,
+    RedirectAttributes redirectAttributes
+  ) {
+    Socio socio = socioLogueado(sesion);
+    if (socio == null) {
+      return new ModelAndView(REDIRECT_HOME);
+    }
+    try {
+      Turno turno = servicioTurno.buscarTurnoDe(socio, turnoId);
+      Map<String, Object> modelo = new ModelMap();
+      modelo.put("turno", turno);
+      modelo.put("recetas", servicioReceta.recetasDelTurno(turno));
+      modelo.put("esVeterinaria", false);
+      modelo.put("urlTurno", "/turnos/" + turnoId);
+      modelo.put("urlVolver", URL_TURNOS);
+      modelo.put("resenado", turno.estaFinalizado() && servicioResena.socioYaReseno(turnoId));
+      return new ModelAndView("detalle-turno", modelo);
+    } catch (TurnoInvalido e) {
+      redirectAttributes.addFlashAttribute(ERROR, e.getMessage());
+      return new ModelAndView(REDIRECT_TURNOS);
+    }
   }
 
   private ModelAndView vistaNuevoTurno(Socio socio, SolicitudTurno solicitud, String error) {

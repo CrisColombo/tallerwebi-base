@@ -3,6 +3,7 @@ package com.tallerwebi.presentacion;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import com.tallerwebi.dominio.*;
@@ -22,6 +23,7 @@ public class ControladorTurnoTest {
   private ServicioSocio servicioSocioMock;
   private ServicioTurno servicioTurnoMock;
   private ServicioResena servicioResena;
+  private ServicioReceta servicioRecetaMock;
   private HttpSession sesionMock;
   private Socio socio;
   private SolicitudTurno solicitud;
@@ -32,13 +34,15 @@ public class ControladorTurnoTest {
     servicioSocioMock = mock(ServicioSocio.class);
     servicioTurnoMock = mock(ServicioTurno.class);
     servicioResena = mock(ServicioResena.class);
+    servicioRecetaMock = mock(ServicioReceta.class);
     controladorTurno =
       new ControladorTurno(
         servicioSocioMock,
         servicioTurnoMock,
         mock(ServicioVeterinaria.class),
         mock(ServicioCobertura.class),
-        servicioResena
+        servicioResena,
+        servicioRecetaMock
       );
 
     sesionMock = mock(HttpSession.class);
@@ -322,5 +326,47 @@ public class ControladorTurnoTest {
     ModelAndView mav = controladorTurno.nuevoTurno(solicitud, sesionMock);
 
     assertThat(mav.getModel().get("sinPlanVigente"), equalTo(true));
+  }
+
+  @Test
+  public void detalleDeberiaMostrarElTurnoDelSocioConSusRecetas() throws TurnoInvalido {
+    Turno turno = new Turno();
+    turno.setId(5L);
+    turno.finalizar("Reposo");
+    List<Receta> recetas = List.of(new Receta(turno, "Otomax", "2 gotas"));
+    when(servicioTurnoMock.buscarTurnoDe(socio, 5L)).thenReturn(turno);
+    when(servicioRecetaMock.recetasDelTurno(turno)).thenReturn(recetas);
+    when(servicioResena.socioYaReseno(5L)).thenReturn(false);
+
+    ModelAndView mav = controladorTurno.detalle(5L, sesionMock, redirectAttributes);
+
+    assertThat(mav.getViewName(), equalTo("detalle-turno"));
+    assertThat(mav.getModel().get("turno"), is(turno));
+    assertThat(mav.getModel().get("recetas"), is(recetas));
+    assertThat(mav.getModel().get("esVeterinaria"), is(false));
+    assertThat(mav.getModel().get("resenado"), is(false));
+  }
+
+  @Test
+  public void detalleDeUnTurnoAjenoDeberiaVolverAMisTurnosConError() throws TurnoInvalido {
+    when(servicioTurnoMock.buscarTurnoDe(socio, 99L))
+      .thenThrow(new TurnoInvalido("No encontramos ese turno"));
+
+    ModelAndView mav = controladorTurno.detalle(99L, sesionMock, redirectAttributes);
+
+    assertThat(mav.getViewName(), equalTo("redirect:/turnos"));
+    assertThat(
+      redirectAttributes.getFlashAttributes().get("error"),
+      equalTo("No encontramos ese turno")
+    );
+  }
+
+  @Test
+  public void detalleSinSerSocioDeberiaVolverAlHome() {
+    when(servicioSocioMock.buscarPorUsuario(2L)).thenReturn(null);
+
+    ModelAndView mav = controladorTurno.detalle(5L, sesionMock, redirectAttributes);
+
+    assertThat(mav.getViewName(), equalTo("redirect:/home"));
   }
 }

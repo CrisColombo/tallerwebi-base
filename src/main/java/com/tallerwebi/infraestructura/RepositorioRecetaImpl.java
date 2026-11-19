@@ -31,4 +31,12 @@ public class RepositorioRecetaImpl extends RepositorioBase<Receta> implements Re
       .setParameter("mascotaId", mascotaId)
       .getResultList();
   }
+
+  @Override
+  public List<Receta> listarPorTurno(Long turnoId) {
+    return sesion()
+      .createQuery("from Receta r where r.turno.id = :turnoId order by r.id", Receta.class)
+      .setParameter("turnoId", turnoId)
+      .getResultList();
+  }
 }

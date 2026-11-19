@@ -80,6 +80,14 @@
                   >
                     <a
                       class="btn btn-outline-secondary btn-sm mp-btn-icono"
+                      th:href="@{/veterinaria/turnos/{id}(id=${t.id})}"
+                      title="Ver detalle"
+                      aria-label="Ver detalle"
+                    >
+                      <i class="bi bi-eye" aria-hidden="true"></i>
+                    </a>
+                    <a
+                      class="btn btn-outline-secondary btn-sm mp-btn-icono"
                       th:unless="${t.estado.name() == 'CANCELADO'}"
                       th:href="@{/veterinaria/turnos/{id}/medicacion(id=${t.id})}"
                       title="Ver medicación"
